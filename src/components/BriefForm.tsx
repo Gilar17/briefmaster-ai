@@ -1,3 +1,6 @@
+"use client";
+
+import type { FormEvent } from "react";
 import type { AIProvider } from "@/types/brief";
 import { AlertIcon, InfoIcon } from "@/components/UiIcons";
 
@@ -15,7 +18,7 @@ type BriefFormProps = {
   canClear: boolean;
   onTextChange: (value: string) => void;
   onProviderChange: (provider: AIProvider) => void;
-  onSubmit: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onClear: () => void;
   onFillExample: () => void;
 };
@@ -51,9 +54,15 @@ export default function BriefForm({
   const fieldHintId = "client-message-hint";
 
   return (
-    <section
+    <form
+      noValidate
       aria-labelledby="form-title"
       className="ui-card p-5 sm:p-6"
+      onSubmit={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onSubmit(event);
+      }}
     >
       <div className="mb-5">
         <h2 id="form-title" className="text-lg font-semibold tracking-tight text-ink sm:text-xl">
@@ -77,7 +86,7 @@ export default function BriefForm({
           AI-провайдер
         </legend>
         <div
-          role="radiogroup"
+          role="group"
           aria-labelledby="provider-label"
           className="grid grid-cols-1 gap-3 sm:grid-cols-2"
         >
@@ -88,10 +97,12 @@ export default function BriefForm({
               <button
                 key={item.value}
                 type="button"
-                role="radio"
-                aria-checked={selected}
+                aria-pressed={selected}
                 disabled={isLoading}
-                onClick={() => onProviderChange(item.value)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onProviderChange(item.value);
+                }}
                 className={`ui-focus flex min-h-12 w-full items-start gap-3 rounded-[var(--radius-control)] border px-3.5 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
                   selected
                     ? "border-brand bg-brand-soft"
@@ -172,8 +183,7 @@ export default function BriefForm({
 
       <div className="flex flex-col gap-3">
         <button
-          type="button"
-          onClick={onSubmit}
+          type="submit"
           disabled={isLoading}
           className="ui-focus inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active disabled:cursor-not-allowed disabled:bg-brand/50 disabled:hover:bg-brand/50 disabled:active:bg-brand/50"
         >
@@ -189,7 +199,10 @@ export default function BriefForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <button
             type="button"
-            onClick={onFillExample}
+            onClick={(event) => {
+              event.preventDefault();
+              onFillExample();
+            }}
             disabled={isLoading}
             className="ui-focus inline-flex min-h-12 items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -197,7 +210,10 @@ export default function BriefForm({
           </button>
           <button
             type="button"
-            onClick={onClear}
+            onClick={(event) => {
+              event.preventDefault();
+              onClear();
+            }}
             disabled={!canClear || isLoading}
             className="ui-focus inline-flex min-h-12 items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -205,6 +221,6 @@ export default function BriefForm({
           </button>
         </div>
       </div>
-    </section>
+    </form>
   );
 }

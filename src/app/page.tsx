@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import BriefForm, {
   EXAMPLE_CLIENT_TEXT,
   MAX_TEXT_LENGTH,
@@ -16,7 +16,7 @@ import {
 import { demoBrief } from "@/data/demoBrief";
 import type { AIProvider, Brief, RequestStatus } from "@/types/brief";
 
-const DEMO_LOADING_MS = 850;
+const DEMO_LOADING_MS = 800;
 const PAGE_SHELL = "mx-auto w-full max-w-[1220px] px-4 sm:px-5";
 
 const ADVANTAGES = [
@@ -94,20 +94,23 @@ export default function Home() {
     }
   }
 
-  function handleSubmit() {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (isLoading || loadingTimeoutRef.current !== null) {
+      return;
+    }
+
     const nextValidationMessage = getValidationMessage(text);
     setValidationMessage(nextValidationMessage);
     resetCopyState();
     setApiError("");
 
-    if (nextValidationMessage || isLoading) {
+    if (nextValidationMessage) {
       return;
     }
 
-    if (loadingTimeoutRef.current !== null) {
-      window.clearTimeout(loadingTimeoutRef.current);
-    }
-
+    setBrief(null);
     setStatus("loading");
     loadingTimeoutRef.current = window.setTimeout(() => {
       setBrief(demoBrief);
@@ -133,7 +136,7 @@ export default function Home() {
 
   function handleFillExample() {
     setText(EXAMPLE_CLIENT_TEXT);
-    setValidationMessage(getValidationMessage(EXAMPLE_CLIENT_TEXT));
+    setValidationMessage("");
   }
 
   async function handleCopy() {

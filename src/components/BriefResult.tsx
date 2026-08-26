@@ -1,3 +1,5 @@
+"use client";
+
 import type { AIProvider, Brief, RequestStatus } from "@/types/brief";
 import { AlertIcon, DocumentIcon } from "@/components/UiIcons";
 
@@ -171,14 +173,20 @@ export default function BriefResult({
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
-              onClick={onCopy}
+              onClick={(event) => {
+                event.preventDefault();
+                onCopy();
+              }}
               className="ui-focus inline-flex min-h-12 w-full items-center justify-center rounded-[var(--radius-control)] bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active sm:w-auto"
             >
               Скопировать бриф
             </button>
             <button
               type="button"
-              onClick={onReset}
+              onClick={(event) => {
+                event.preventDefault();
+                onReset();
+              }}
               className="ui-focus inline-flex min-h-12 w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page sm:w-auto"
             >
               Создать новый бриф
