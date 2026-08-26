@@ -14,4 +14,4 @@ export type Brief = {
   recommendedWorkflow: string[];
 };
 
-export type RequestStatus = "idle" | "loading" | "success";
+export type RequestStatus = "idle" | "loading" | "success" | "error";

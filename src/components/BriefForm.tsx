@@ -1,4 +1,5 @@
 import type { AIProvider } from "@/types/brief";
+import { AlertIcon, InfoIcon } from "@/components/UiIcons";
 
 export const MIN_TEXT_LENGTH = 50;
 export const MAX_TEXT_LENGTH = 8000;
@@ -52,30 +53,33 @@ export default function BriefForm({
   return (
     <section
       aria-labelledby="form-title"
-      className="rounded-2xl border border-line bg-card p-5 shadow-[0_8px_24px_rgba(32,32,42,0.04)] sm:p-6"
+      className="ui-card p-5 sm:p-6"
     >
       <div className="mb-5">
-        <h2 id="form-title" className="text-xl font-semibold tracking-tight text-ink">
+        <h2 id="form-title" className="text-lg font-semibold tracking-tight text-ink sm:text-xl">
           Исходные данные
         </h2>
-        <p className="mt-1 text-sm leading-6 text-muted">
+        <p className="mt-1.5 text-sm leading-6 text-muted">
           Вставьте сообщение клиента или описание будущего сайта.
         </p>
       </div>
 
-      <p className="mb-5 rounded-xl border border-line bg-brand-soft px-3 py-2 text-sm leading-5 text-ink">
-        Демонстрационный режим: подключение AI будет добавлено на следующем
-        этапе.
-      </p>
+      <div className="mb-5 flex gap-3 rounded-[var(--radius-control)] bg-brand-soft px-3.5 py-3">
+        <InfoIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+        <p className="text-sm leading-6 text-ink">
+          Демонстрационный режим: подключение AI будет добавлено на следующем
+          этапе.
+        </p>
+      </div>
 
       <fieldset className="mb-5 min-w-0">
-        <legend id="provider-label" className="mb-2 text-sm font-medium text-ink">
+        <legend id="provider-label" className="mb-2.5 text-sm font-medium text-ink">
           AI-провайдер
         </legend>
         <div
           role="radiogroup"
           aria-labelledby="provider-label"
-          className="grid gap-3 sm:grid-cols-2"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2"
         >
           {PROVIDERS.map((item) => {
             const selected = provider === item.value;
@@ -88,23 +92,35 @@ export default function BriefForm({
                 aria-checked={selected}
                 disabled={isLoading}
                 onClick={() => onProviderChange(item.value)}
-                className={`min-h-12 rounded-xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 ${
+                className={`ui-focus flex min-h-12 w-full items-start gap-3 rounded-[var(--radius-control)] border px-3.5 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
                   selected
                     ? "border-brand bg-brand-soft"
-                    : "border-line bg-card hover:border-brand/40"
+                    : "border-line bg-card hover:border-brand/35 hover:bg-page"
                 }`}
               >
-                <span className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-ink">{item.label}</span>
+                <span
+                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                    selected ? "border-brand" : "border-line"
+                  }`}
+                  aria-hidden="true"
+                >
                   {selected ? (
-                    <span className="rounded-full bg-brand px-2 py-0.5 text-xs font-medium text-white">
-                      Выбран
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted">Выбрать</span>
-                  )}
+                    <span className="h-2 w-2 rounded-full bg-brand" />
+                  ) : null}
                 </span>
-                <span className="mt-1 block text-xs text-muted">{item.hint}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-ink">{item.label}</span>
+                    {selected ? (
+                      <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-medium leading-4 text-white">
+                        Выбран
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="mt-1 block text-[13px] leading-5 text-muted">
+                    {item.hint}
+                  </span>
+                </span>
               </button>
             );
           })}
@@ -124,31 +140,33 @@ export default function BriefForm({
           value={text}
           disabled={isLoading}
           onChange={(event) => onTextChange(event.target.value)}
-          placeholder="Например: Нужен современный сайт для строительной компании. Хотим показать услуги и выполненные проекты, добавить квиз и отправлять заявки в Telegram…"
+          placeholder="Например: Нужен современный сайт для строительной компании. Хотим показать услуги и проекты, добавить квиз и получать заявки в Telegram…"
           aria-invalid={validationMessage ? true : undefined}
           aria-describedby={
             validationMessage ? `${fieldHintId} ${fieldErrorId}` : fieldHintId
           }
-          className={`min-h-52 w-full resize-y rounded-xl border bg-card px-3 py-3 text-sm leading-6 text-ink placeholder:text-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 ${
+          className={`ui-focus min-h-[180px] w-full resize-y rounded-[var(--radius-control)] border bg-card px-3.5 py-3 text-sm leading-6 text-ink placeholder:text-muted md:min-h-[240px] disabled:cursor-not-allowed disabled:opacity-70 ${
             validationMessage ? "border-danger" : "border-line"
           }`}
         />
         <div
           id={fieldHintId}
-          className="mt-2 flex flex-wrap items-start justify-between gap-2 text-xs leading-5 text-muted"
+          className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[13px] leading-5 text-muted"
         >
-          <p>
-            Минимальный объём — {MIN_TEXT_LENGTH} символов. Максимальный объём —{" "}
-            {MAX_TEXT_LENGTH} символов.
-          </p>
+          <p>От {MIN_TEXT_LENGTH} до {MAX_TEXT_LENGTH} символов</p>
           <p className={isOverLimit ? "font-medium text-danger" : undefined}>
             {characterCount} / {MAX_TEXT_LENGTH}
           </p>
         </div>
         {validationMessage ? (
-          <p id={fieldErrorId} role="alert" className="mt-2 text-sm text-danger">
-            {validationMessage}
-          </p>
+          <div
+            id={fieldErrorId}
+            role="alert"
+            className="mt-2 flex gap-2 rounded-[var(--radius-control)] bg-danger-soft px-3 py-2.5 text-sm leading-5 text-danger"
+          >
+            <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>{validationMessage}</p>
+          </div>
         ) : null}
       </div>
 
@@ -157,16 +175,23 @@ export default function BriefForm({
           type="button"
           onClick={onSubmit}
           disabled={isLoading}
-          className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-brand/50 disabled:hover:bg-brand/50"
+          className="ui-focus inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active disabled:cursor-not-allowed disabled:bg-brand/50 disabled:hover:bg-brand/50 disabled:active:bg-brand/50"
         >
-          {isLoading ? "Формируем бриф…" : "Сформировать бриф"}
+          {isLoading ? (
+            <>
+              <span className="brief-spinner-sm" aria-hidden="true" />
+              Формируем бриф…
+            </>
+          ) : (
+            "Сформировать бриф"
+          )}
         </button>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <button
             type="button"
             onClick={onFillExample}
             disabled={isLoading}
-            className="inline-flex min-h-12 items-center justify-center rounded-xl border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-brand-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="ui-focus inline-flex min-h-12 items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-60"
           >
             Заполнить примером
           </button>
@@ -174,7 +199,7 @@ export default function BriefForm({
             type="button"
             onClick={onClear}
             disabled={!canClear || isLoading}
-            className="inline-flex min-h-12 items-center justify-center rounded-xl border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="ui-focus inline-flex min-h-12 items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
           >
             Очистить
           </button>
