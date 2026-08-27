@@ -1,11 +1,15 @@
 "use client";
 
 import type { FormEvent } from "react";
-import type { AIProvider } from "@/types/brief";
+import {
+  MAX_MESSAGE_LENGTH,
+  MIN_MESSAGE_LENGTH,
+  type AIProvider,
+} from "@/types/brief";
 import { AlertIcon, InfoIcon } from "@/components/UiIcons";
 
-export const MIN_TEXT_LENGTH = 50;
-export const MAX_TEXT_LENGTH = 8000;
+export const MIN_TEXT_LENGTH = MIN_MESSAGE_LENGTH;
+export const MAX_TEXT_LENGTH = MAX_MESSAGE_LENGTH;
 
 export const EXAMPLE_CLIENT_TEXT =
   "Нужен современный сайт для компании, которая строит загородные дома в Московской области. Главная цель сайта — получать заявки на расчёт стоимости строительства. Клиенты — владельцы земельных участков и семьи, планирующие переезд за город. На сайте нужно показать услуги, готовые проекты домов, фотографии выполненных объектов, этапы работы и отзывы заказчиков. Нужны квиз для предварительного расчёта, форма обратного звонка и отправка заявок в Telegram. Предпочтительный стиль — современный минимализм, светлый фон, тёмно-синие акценты и крупные фотографии домов. У компании есть логотип и часть фотографий, но тексты для страниц ещё не подготовлены.";
@@ -49,7 +53,7 @@ export default function BriefForm({
   onFillExample,
 }: BriefFormProps) {
   const characterCount = text.length;
-  const isOverLimit = characterCount > MAX_TEXT_LENGTH;
+  const isOverLimit = characterCount > MAX_MESSAGE_LENGTH;
   const fieldErrorId = "client-message-error";
   const fieldHintId = "client-message-hint";
 
@@ -76,8 +80,8 @@ export default function BriefForm({
       <div className="mb-5 flex gap-3 rounded-[var(--radius-control)] bg-brand-soft px-3.5 py-3">
         <InfoIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
         <p className="text-sm leading-6 text-ink">
-          Демонстрационный режим: подключение AI будет добавлено на следующем
-          этапе.
+          Текст обрабатывается выбранным AI-провайдером. Ключи хранятся только
+          на сервере.
         </p>
       </div>
 
@@ -164,9 +168,9 @@ export default function BriefForm({
           id={fieldHintId}
           className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[13px] leading-5 text-muted"
         >
-          <p>От {MIN_TEXT_LENGTH} до {MAX_TEXT_LENGTH} символов</p>
+          <p>От {MIN_MESSAGE_LENGTH} до {MAX_MESSAGE_LENGTH} символов</p>
           <p className={isOverLimit ? "font-medium text-danger" : undefined}>
-            {characterCount} / {MAX_TEXT_LENGTH}
+            {characterCount} / {MAX_MESSAGE_LENGTH}
           </p>
         </div>
         {validationMessage ? (

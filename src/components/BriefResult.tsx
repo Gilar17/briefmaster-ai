@@ -89,8 +89,7 @@ export default function BriefResult({
         <span className="brief-spinner" aria-hidden="true" />
         <p className="mt-4 text-base font-medium text-ink">Формируем бриф…</p>
         <p className="mt-2 max-w-sm text-sm leading-6 text-muted">
-          Демонстрационный режим: сейчас показывается локальный пример, без
-          обращения к AI-провайдеру.
+          Анализируем сообщение клиента и собираем 11 разделов брифа.
         </p>
       </section>
     );
@@ -135,12 +134,11 @@ export default function BriefResult({
               Готовый бриф
             </h2>
             <p className="mt-1 text-sm leading-6 text-muted">
-              Выбран в форме: {getProviderLabel(provider)}. Демонстрационный
-              результат.
+              Сформировано через {getProviderLabel(provider)}.
             </p>
           </div>
           <p className="w-fit rounded-full bg-brand-soft px-3 py-1 text-xs font-medium text-ink">
-            Демонстрационный результат
+            Сформировано с помощью AI
           </p>
         </div>
 

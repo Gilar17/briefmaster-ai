@@ -13,11 +13,22 @@ import {
   SectionsIcon,
   StructureIcon,
 } from "@/components/UiIcons";
-import { demoBrief } from "@/data/demoBrief";
-import type { AIProvider, Brief, RequestStatus } from "@/types/brief";
+import { isPlainObject, normalizeBrief } from "@/lib/ai/parseBrief";
+import type {
+  AIProvider,
+  Brief,
+  GenerateBriefErrorResponse,
+  GenerateBriefSuccessResponse,
+  RequestStatus,
+} from "@/types/brief";
 
-const DEMO_LOADING_MS = 800;
 const PAGE_SHELL = "mx-auto w-full max-w-[1220px] px-4 sm:px-5";
+const NETWORK_ERROR =
+  "Не удалось связаться с сервером. Проверьте подключение и повторите попытку.";
+const UNAVAILABLE_ERROR =
+  "AI-сервис временно недоступен. Попробуйте ещё раз.";
+const INVALID_RESPONSE_ERROR =
+  "Не удалось обработать ответ AI. Попробуйте сформировать бриф ещё раз.";
 
 const ADVANTAGES = [
   {
@@ -58,16 +69,15 @@ export default function Home() {
   const [validationMessage, setValidationMessage] = useState("");
   const [status, setStatus] = useState<RequestStatus>("idle");
   const [brief, setBrief] = useState<Brief | null>(null);
+  const [resultProvider, setResultProvider] = useState<AIProvider | null>(null);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
   const [apiError, setApiError] = useState("");
-  const loadingTimeoutRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
-      if (loadingTimeoutRef.current !== null) {
-        window.clearTimeout(loadingTimeoutRef.current);
-      }
+      abortRef.current?.abort();
     };
   }, []);
 
@@ -94,10 +104,10 @@ export default function Home() {
     }
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (isLoading || loadingTimeoutRef.current !== null) {
+    if (isLoading || abortRef.current !== null) {
       return;
     }
 
@@ -110,26 +120,77 @@ export default function Home() {
       return;
     }
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setBrief(null);
+    setResultProvider(null);
     setStatus("loading");
-    loadingTimeoutRef.current = window.setTimeout(() => {
-      setBrief(demoBrief);
-      setStatus("success");
-      loadingTimeoutRef.current = null;
-    }, DEMO_LOADING_MS);
+
+    try {
+      const response = await fetch("/api/generate-brief", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          provider,
+          message: text.trim(),
+        }),
+        signal: controller.signal,
+      });
+
+      let data: unknown;
+
+      try {
+        data = await response.json();
+      } catch {
+        setStatus("error");
+        setApiError(UNAVAILABLE_ERROR);
+        return;
+      }
+
+      const success = readSuccessResponse(data);
+
+      if (success) {
+        setBrief(success.brief);
+        setResultProvider(success.provider);
+        setStatus("success");
+        return;
+      }
+
+      if (isErrorResponse(data)) {
+        setStatus("error");
+        setApiError(data.error);
+        return;
+      }
+
+      setStatus("error");
+      setApiError(INVALID_RESPONSE_ERROR);
+    } catch {
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      setStatus("error");
+      setApiError(NETWORK_ERROR);
+    } finally {
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+      }
+    }
   }
 
   function handleClear() {
-    if (loadingTimeoutRef.current !== null) {
-      window.clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = null;
-    }
+    abortRef.current?.abort();
+    abortRef.current = null;
 
     setText("");
     setProvider("openrouter");
     setValidationMessage("");
     setStatus("idle");
     setBrief(null);
+    setResultProvider(null);
     setApiError("");
     resetCopyState();
   }
@@ -235,7 +296,7 @@ export default function Home() {
             <BriefResult
               status={status}
               brief={brief}
-              provider={provider}
+              provider={resultProvider ?? provider}
               copied={copied}
               copyError={copyError}
               apiError={apiError}
@@ -254,4 +315,35 @@ export default function Home() {
       </footer>
     </div>
   );
+}
+
+function isErrorResponse(data: unknown): data is GenerateBriefErrorResponse {
+  return (
+    isPlainObject(data) &&
+    data.success === false &&
+    typeof data.error === "string" &&
+    data.error.trim().length > 0
+  );
+}
+
+function readSuccessResponse(
+  data: unknown,
+): GenerateBriefSuccessResponse | null {
+  if (!isPlainObject(data) || data.success !== true) {
+    return null;
+  }
+
+  if (data.provider !== "openrouter" && data.provider !== "openai") {
+    return null;
+  }
+
+  try {
+    return {
+      success: true,
+      provider: data.provider,
+      brief: normalizeBrief(data.brief),
+    };
+  } catch {
+    return null;
+  }
 }
