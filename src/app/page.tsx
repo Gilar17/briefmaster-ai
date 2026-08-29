@@ -30,20 +30,33 @@ const UNAVAILABLE_ERROR =
 const INVALID_RESPONSE_ERROR =
   "Не удалось обработать ответ AI. Попробуйте сформировать бриф ещё раз.";
 
+const RESULT_SECTION_ID = "brief-result";
+
 const ADVANTAGES = [
   {
     title: "11 разделов готового брифа",
     icon: SectionsIcon,
+    targetId: RESULT_SECTION_ID,
   },
   {
     title: "Вопросы по недостающим данным",
     icon: QuestionsIcon,
+    targetId: "brief-questions",
   },
   {
     title: "Структура сайта и план работ",
     icon: StructureIcon,
+    targetId: "brief-structure",
   },
 ] as const;
+
+function scrollToPageSection(targetId: string) {
+  const target =
+    document.getElementById(targetId) ??
+    document.getElementById(RESULT_SECTION_ID);
+
+  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 function getValidationMessage(text: string): string {
   const trimmed = text.trim();
@@ -263,14 +276,20 @@ export default function Home() {
               const Icon = item.icon;
 
               return (
-                <li
-                  key={item.title}
-                  className="flex h-full min-h-[92px] gap-3 rounded-[var(--radius-card)] border border-line bg-card p-4"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-soft text-brand">
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="text-sm leading-6 text-ink">{item.title}</span>
+                <li key={item.title} className="min-w-0">
+                  <a
+                    href={`#${RESULT_SECTION_ID}`}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      scrollToPageSection(item.targetId);
+                    }}
+                    className="ui-focus flex h-full min-h-[92px] w-full cursor-pointer gap-3 rounded-[var(--radius-card)] border border-line bg-card p-4 text-left no-underline transition-colors hover:border-brand/35 hover:bg-page"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-soft text-brand">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="text-sm leading-6 text-ink">{item.title}</span>
+                  </a>
                 </li>
               );
             })}

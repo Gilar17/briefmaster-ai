@@ -7,6 +7,7 @@ type BriefSection = {
   title: string;
   content: string | string[];
   highlight?: boolean;
+  id?: string;
 };
 
 type BriefResultProps = {
@@ -39,7 +40,11 @@ function getBriefSections(brief: Brief): BriefSection[] {
     { title: "Цель сайта", content: brief.siteGoal },
     { title: "Целевая аудитория", content: brief.targetAudience },
     { title: "Тип сайта", content: brief.siteType },
-    { title: "Предлагаемая структура сайта", content: brief.siteStructure },
+    {
+      title: "Предлагаемая структура сайта",
+      content: brief.siteStructure,
+      id: "brief-structure",
+    },
     { title: "Функциональные требования", content: brief.functionalRequirements },
     { title: "Пожелания по дизайну", content: brief.designPreferences },
     { title: "Необходимые интеграции", content: brief.integrations },
@@ -51,8 +56,13 @@ function getBriefSections(brief: Brief): BriefSection[] {
       title: "Вопросы для уточнения",
       content: brief.clarificationQuestions,
       highlight: true,
+      id: "brief-questions",
     },
-    { title: "Рекомендуемый порядок работы", content: brief.recommendedWorkflow },
+    {
+      title: "Рекомендуемый порядок работы",
+      content: brief.recommendedWorkflow,
+      id: "brief-workflow",
+    },
   ];
 }
 
@@ -82,9 +92,10 @@ export default function BriefResult({
   if (status === "loading") {
     return (
       <section
+        id="brief-result"
         aria-live="polite"
         aria-busy="true"
-        className="ui-card flex min-h-[22rem] flex-col items-center justify-center p-6 text-center lg:min-h-[28rem]"
+        className="ui-card flex min-h-[22rem] scroll-mt-6 flex-col items-center justify-center p-6 text-center lg:min-h-[28rem]"
       >
         <span className="brief-spinner" aria-hidden="true" />
         <p className="mt-4 text-base font-medium text-ink">Формируем бриф…</p>
@@ -98,8 +109,9 @@ export default function BriefResult({
   if (status === "error" || apiError) {
     return (
       <section
+        id="brief-result"
         aria-labelledby="result-error-title"
-        className="ui-card min-h-[22rem] p-5 sm:p-6 lg:min-h-[28rem]"
+        className="ui-card min-h-[22rem] scroll-mt-6 p-5 sm:p-6 lg:min-h-[28rem]"
       >
         <div
           role="alert"
@@ -125,8 +137,9 @@ export default function BriefResult({
 
     return (
       <section
+        id="brief-result"
         aria-labelledby="result-title"
-        className="ui-card p-5 sm:p-6"
+        className="ui-card scroll-mt-6 p-5 sm:p-6"
       >
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -145,8 +158,9 @@ export default function BriefResult({
         <div className="space-y-3">
           {sections.map((section, index) => (
             <article
+              id={section.id}
               key={section.title}
-              className={`rounded-[var(--radius-control)] border border-line p-4 ${
+              className={`min-w-0 scroll-mt-6 break-words rounded-[var(--radius-control)] border border-line p-4 ${
                 section.highlight ? "bg-brand-soft" : "bg-page"
               }`}
             >
@@ -155,13 +169,15 @@ export default function BriefResult({
                 {section.title}
               </h3>
               {Array.isArray(section.content) ? (
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-ink">
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 break-words text-ink">
                   {section.content.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-2 text-sm leading-6 text-ink">{section.content}</p>
+                <p className="mt-2 text-sm leading-6 break-words text-ink">
+                  {section.content}
+                </p>
               )}
             </article>
           ))}
@@ -214,8 +230,9 @@ export default function BriefResult({
 
   return (
     <section
+      id="brief-result"
       aria-labelledby="result-placeholder-title"
-      className="flex min-h-[22rem] flex-col rounded-[var(--radius-card)] border border-dashed border-line bg-card p-6 lg:min-h-[28rem]"
+      className="flex min-h-[22rem] scroll-mt-6 flex-col rounded-[var(--radius-card)] border border-dashed border-line bg-card p-6 lg:min-h-[28rem]"
     >
       <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-control)] bg-brand-soft text-brand">
         <DocumentIcon className="h-6 w-6" />

@@ -4,6 +4,11 @@ import {
 } from "@/lib/ai/generateBrief";
 import { isPlainObject } from "@/lib/ai/parseBrief";
 import {
+  RATE_LIMIT_USER_MESSAGE,
+  consumeRateLimit,
+  getClientIpFromHeaders,
+} from "@/lib/rate-limit";
+import {
   MAX_MESSAGE_LENGTH,
   MIN_MESSAGE_LENGTH,
   type AIProvider,
@@ -39,6 +44,12 @@ export async function POST(request: Request): Promise<Response> {
 
   if (!parsed.ok) {
     return errorResponse(parsed.error, 400);
+  }
+
+  const clientKey = getClientIpFromHeaders(request.headers);
+
+  if (!consumeRateLimit(clientKey).allowed) {
+    return errorResponse(RATE_LIMIT_USER_MESSAGE, 429);
   }
 
   try {
