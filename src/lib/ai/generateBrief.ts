@@ -5,18 +5,48 @@ import { BRIEF_SYSTEM_PROMPT, buildUserPrompt } from "@/lib/ai/prompt";
 const PROVIDER_TIMEOUT_MS = 45_000;
 const MAX_OUTPUT_TOKENS = 3000;
 
-const USER_ERROR = {
+type BriefGenerationErrorCode =
+  | "config"
+  | "unavailable"
+  | "billing"
+  | "region"
+  | "timeout"
+  | "invalidResponse";
+
+const OPENROUTER_USER_ERROR: Record<BriefGenerationErrorCode, string> = {
   config: "Выбранный AI-провайдер пока не настроен. Проверьте переменные окружения.",
   unavailable: "AI-сервис временно недоступен. Попробуйте ещё раз.",
   billing:
     "На счёте выбранного AI-сервиса недостаточно средств. Пополните баланс и попробуйте снова.",
   region:
     "Выбранный AI-сервис недоступен в текущем регионе. Попробуйте другого провайдера.",
+  timeout: "AI-сервис временно недоступен. Попробуйте ещё раз.",
   invalidResponse:
     "Не удалось обработать ответ AI. Попробуйте сформировать бриф ещё раз.",
-} as const;
+};
 
-type BriefGenerationErrorCode = keyof typeof USER_ERROR;
+const OPENAI_USER_ERROR: Record<BriefGenerationErrorCode, string> = {
+  config:
+    "OpenAI сейчас недоступен: сервер не настроен. Попробуйте позже или выберите OpenRouter.",
+  unavailable:
+    "OpenAI сейчас не смог сформировать бриф. Попробуйте позже или выберите OpenRouter.",
+  billing:
+    "На счёте OpenAI недостаточно средств. Пополните баланс и попробуйте снова.",
+  region:
+    "OpenAI недоступен в текущем регионе. Попробуйте позже или выберите OpenRouter.",
+  timeout: "OpenAI не ответил вовремя. Попробуйте ещё раз.",
+  invalidResponse:
+    "Не удалось прочитать бриф от OpenAI. Попробуйте отправить запрос ещё раз.",
+};
+
+function getUserError(
+  provider: AIProvider,
+  code: BriefGenerationErrorCode,
+): string {
+  return provider === "openai"
+    ? OPENAI_USER_ERROR[code]
+    : OPENROUTER_USER_ERROR[code];
+}
 
 type ChatProviderConfig = {
   provider: AIProvider;
@@ -28,12 +58,15 @@ type ChatProviderConfig = {
 export class BriefGenerationError extends Error {
   readonly code: BriefGenerationErrorCode;
   readonly httpStatus: number;
+  readonly provider: AIProvider;
 
-  constructor(code: BriefGenerationErrorCode) {
-    super(USER_ERROR[code]);
+  constructor(code: BriefGenerationErrorCode, provider: AIProvider) {
+    super(getUserError(provider, code));
     this.name = "BriefGenerationError";
     this.code = code;
-    this.httpStatus = code === "invalidResponse" ? 502 : 503;
+    this.provider = provider;
+    this.httpStatus =
+      code === "invalidResponse" ? 502 : code === "timeout" ? 504 : 503;
   }
 }
 
@@ -47,7 +80,7 @@ export async function generateBrief(
   try {
     return parseBriefFromModelText(content);
   } catch {
-    throw new BriefGenerationError("invalidResponse");
+    throw new BriefGenerationError("invalidResponse", provider);
   }
 }
 
@@ -57,7 +90,7 @@ function getChatProviderConfig(provider: AIProvider): ChatProviderConfig {
     const model = readServerEnv("OPENROUTER_MODEL");
 
     if (!apiKey || !model) {
-      throw new BriefGenerationError("config");
+      throw new BriefGenerationError("config", provider);
     }
 
     return {
@@ -72,7 +105,7 @@ function getChatProviderConfig(provider: AIProvider): ChatProviderConfig {
   const model = readServerEnv("OPENAI_MODEL");
 
   if (!apiKey || !model) {
-    throw new BriefGenerationError("config");
+    throw new BriefGenerationError("config", provider);
   }
 
   return {
@@ -101,12 +134,16 @@ async function requestChatCompletion(
       body: JSON.stringify(buildChatCompletionBody(config, message)),
       signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
     });
-  } catch {
-    throw new BriefGenerationError("unavailable");
+  } catch (error) {
+    if (config.provider === "openai" && isTimeoutError(error)) {
+      throw new BriefGenerationError("timeout", config.provider);
+    }
+
+    throw new BriefGenerationError("unavailable", config.provider);
   }
 
   if (!response.ok) {
-    throw await mapProviderHttpError(response);
+    throw await mapProviderHttpError(response, config.provider);
   }
 
   let payload: unknown;
@@ -114,10 +151,10 @@ async function requestChatCompletion(
   try {
     payload = await response.json();
   } catch {
-    throw new BriefGenerationError("invalidResponse");
+    throw new BriefGenerationError("invalidResponse", config.provider);
   }
 
-  return readAssistantContent(payload);
+  return readAssistantContent(payload, config.provider);
 }
 
 function buildChatCompletionBody(
@@ -142,13 +179,16 @@ function buildChatCompletionBody(
   return body;
 }
 
-async function mapProviderHttpError(response: Response): Promise<never> {
+async function mapProviderHttpError(
+  response: Response,
+  provider: AIProvider,
+): Promise<never> {
   let payload: unknown;
 
   try {
     payload = await response.json();
   } catch {
-    throw new BriefGenerationError("unavailable");
+    throw new BriefGenerationError("unavailable", provider);
   }
 
   const code = readProviderErrorCode(payload);
@@ -166,23 +206,32 @@ async function mapProviderHttpError(response: Response): Promise<never> {
     message.includes("billing") ||
     message.includes("credit")
   ) {
-    throw new BriefGenerationError("billing");
+    throw new BriefGenerationError("billing", provider);
   }
 
-  if (
-    response.status === 403 ||
-    code === "unsupported_country_region_territory" ||
-    message.includes("country") ||
-    message.includes("territory")
-  ) {
-    throw new BriefGenerationError("region");
+  if (isUnsupportedRegionError(code, message)) {
+    throw new BriefGenerationError("region", provider);
   }
 
   if (code === "invalid_api_key" || response.status === 401) {
-    throw new BriefGenerationError("config");
+    throw new BriefGenerationError("config", provider);
   }
 
-  throw new BriefGenerationError("unavailable");
+  throw new BriefGenerationError("unavailable", provider);
+}
+
+function isUnsupportedRegionError(code: string, message: string): boolean {
+  if (code === "unsupported_country_region_territory") {
+    return true;
+  }
+
+  return (
+    message.includes("country, region, or territory not supported") ||
+    message.includes("unsupported country") ||
+    message.includes("unsupported region") ||
+    message.includes("unsupported territory") ||
+    message.includes("territory not supported")
+  );
 }
 
 function readProviderErrorCode(payload: unknown): string {
@@ -228,28 +277,37 @@ function buildHeaders(config: ChatProviderConfig): HeadersInit {
   return headers;
 }
 
-function readAssistantContent(payload: unknown): string {
+function readAssistantContent(payload: unknown, provider: AIProvider): string {
   if (!isPlainObject(payload) || payload.error) {
-    throw new BriefGenerationError("invalidResponse");
+    throw new BriefGenerationError("invalidResponse", provider);
   }
 
   const choices = payload.choices;
 
   if (!Array.isArray(choices) || choices.length === 0 || !isPlainObject(choices[0])) {
-    throw new BriefGenerationError("invalidResponse");
+    throw new BriefGenerationError("invalidResponse", provider);
   }
 
   const message = choices[0].message;
 
   if (!isPlainObject(message) || typeof message.content !== "string") {
-    throw new BriefGenerationError("invalidResponse");
+    throw new BriefGenerationError("invalidResponse", provider);
   }
 
   const content = message.content.trim();
 
   if (content.length === 0) {
-    throw new BriefGenerationError("invalidResponse");
+    throw new BriefGenerationError("invalidResponse", provider);
   }
 
   return content;
+}
+
+function isTimeoutError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error.name === "TimeoutError" || error.name === "AbortError")
+  );
 }
