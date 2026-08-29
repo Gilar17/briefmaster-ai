@@ -59,12 +59,21 @@ export class BriefGenerationError extends Error {
   readonly code: BriefGenerationErrorCode;
   readonly httpStatus: number;
   readonly provider: AIProvider;
+  diagnostic: {
+    provider: AIProvider;
+    httpStatus: number;
+    errorType: string;
+    errorCode: string;
+    errorMessage: string;
+    modelId: string;
+  } | null;
 
   constructor(code: BriefGenerationErrorCode, provider: AIProvider) {
     super(getUserError(provider, code));
     this.name = "BriefGenerationError";
     this.code = code;
     this.provider = provider;
+    this.diagnostic = null;
     this.httpStatus =
       code === "invalidResponse" ? 502 : code === "timeout" ? 504 : 503;
   }
@@ -143,7 +152,7 @@ async function requestChatCompletion(
   }
 
   if (!response.ok) {
-    throw await mapProviderHttpError(response, config.provider);
+    throw await mapProviderHttpError(response, config.provider, config.model);
   }
 
   let payload: unknown;
@@ -182,14 +191,36 @@ function buildChatCompletionBody(
 async function mapProviderHttpError(
   response: Response,
   provider: AIProvider,
+  modelId: string,
 ): Promise<never> {
   let payload: unknown;
 
   try {
     payload = await response.json();
   } catch {
-    throw new BriefGenerationError("unavailable", provider);
+    throw withProviderDiagnostic(
+      "unavailable",
+      provider,
+      logSafeProviderError({
+        provider,
+        httpStatus: response.status,
+        errorType: "",
+        errorCode: "",
+        errorMessage: "",
+        modelId,
+      }),
+    );
   }
+
+  const details = readProviderErrorDetails(payload);
+  const diagnostic = logSafeProviderError({
+    provider,
+    httpStatus: response.status,
+    errorType: details.type,
+    errorCode: details.code,
+    errorMessage: details.message,
+    modelId,
+  });
 
   const code = readProviderErrorCode(payload);
   const message = readProviderErrorMessage(payload);
@@ -206,18 +237,81 @@ async function mapProviderHttpError(
     message.includes("billing") ||
     message.includes("credit")
   ) {
-    throw new BriefGenerationError("billing", provider);
+    throw withProviderDiagnostic("billing", provider, diagnostic);
   }
 
   if (isUnsupportedRegionError(code, message)) {
-    throw new BriefGenerationError("region", provider);
+    throw withProviderDiagnostic("region", provider, diagnostic);
   }
 
   if (code === "invalid_api_key" || response.status === 401) {
-    throw new BriefGenerationError("config", provider);
+    throw withProviderDiagnostic("config", provider, diagnostic);
   }
 
-  throw new BriefGenerationError("unavailable", provider);
+  throw withProviderDiagnostic("unavailable", provider, diagnostic);
+}
+
+function withProviderDiagnostic(
+  code: BriefGenerationErrorCode,
+  provider: AIProvider,
+  diagnostic: BriefGenerationError["diagnostic"],
+): BriefGenerationError {
+  const error = new BriefGenerationError(code, provider);
+  error.diagnostic = diagnostic;
+  return error;
+}
+
+function readProviderErrorDetails(payload: unknown): {
+  type: string;
+  code: string;
+  message: string;
+} {
+  if (!isPlainObject(payload) || !isPlainObject(payload.error)) {
+    return { type: "", code: "", message: "" };
+  }
+
+  return {
+    type: typeof payload.error.type === "string" ? payload.error.type.trim() : "",
+    code: typeof payload.error.code === "string" ? payload.error.code.trim() : "",
+    message:
+      typeof payload.error.message === "string" ? payload.error.message.trim() : "",
+  };
+}
+
+function sanitizeDiagnosticMessage(message: string): string {
+  const redacted = message.replace(/sk-[a-zA-Z0-9_-]+/gi, "[redacted]");
+  return redacted.length <= 180 ? redacted : redacted.slice(0, 180);
+}
+
+function logSafeProviderError(params: {
+  provider: AIProvider;
+  httpStatus: number;
+  errorType: string;
+  errorCode: string;
+  errorMessage: string;
+  modelId: string;
+}): {
+  provider: AIProvider;
+  httpStatus: number;
+  errorType: string;
+  errorCode: string;
+  errorMessage: string;
+  modelId: string;
+} {
+  const diagnostic = {
+    provider: params.provider,
+    httpStatus: params.httpStatus,
+    errorType: params.errorType,
+    errorCode: params.errorCode,
+    errorMessage: sanitizeDiagnosticMessage(params.errorMessage),
+    modelId: params.modelId,
+  };
+
+  if (params.provider === "openai") {
+    console.error("[ai-provider-error]", diagnostic);
+  }
+
+  return diagnostic;
 }
 
 function isUnsupportedRegionError(code: string, message: string): boolean {
