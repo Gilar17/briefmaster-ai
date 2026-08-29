@@ -17,6 +17,38 @@ const ARRAY_FIELDS = [
   "recommendedWorkflow",
 ] as const;
 
+const MIN_ARRAY_LENGTH: Record<(typeof ARRAY_FIELDS)[number], number> = {
+  siteStructure: 5,
+  functionalRequirements: 3,
+  designPreferences: 1,
+  integrations: 2,
+  requiredMaterials: 5,
+  clarificationQuestions: 3,
+  recommendedWorkflow: 6,
+};
+
+const PLACEHOLDER_EXACT = new Set([
+  "данные отсутствуют",
+  "информация отсутствует",
+  "информация не указана",
+  "не указано",
+  "требуется уточнить",
+  "нет данных",
+  "не определено",
+]);
+
+const PLACEHOLDER_PATTERNS = [
+  /^(данные|информация)( о .+)? (отсутствует|отсутствуют|не указан[аыо]?)$/i,
+  /^данных нет$/i,
+  /^сведения отсутствуют$/i,
+];
+
+const STRICT_PLACEHOLDER_FIELDS = new Set<string>([
+  "siteStructure",
+  "integrations",
+  "requiredMaterials",
+]);
+
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -61,7 +93,11 @@ export function normalizeBrief(value: unknown): Brief {
   };
 
   for (const field of ARRAY_FIELDS) {
-    arrayFields[field] = readStringArray(value[field]);
+    arrayFields[field] = readRecommendationArray(
+      value[field],
+      MIN_ARRAY_LENGTH[field],
+      STRICT_PLACEHOLDER_FIELDS.has(field),
+    );
   }
 
   return {
@@ -101,10 +137,42 @@ function readRequiredString(value: unknown): string {
   return trimmed;
 }
 
-function readStringArray(value: unknown): string[] {
+function readRecommendationArray(
+  value: unknown,
+  minLength: number,
+  rejectPlaceholderOnly: boolean,
+): string[] {
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
     throw new Error("INVALID_BRIEF");
   }
 
-  return value.map((item) => item.trim()).filter((item) => item.length > 0);
+  const items = value
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+
+  if (rejectPlaceholderOnly && items.length > 0 && items.every(isPlaceholderItem)) {
+    throw new Error("INVALID_BRIEF");
+  }
+
+  const usefulItems = items.filter((item) => !isPlaceholderItem(item));
+
+  if (usefulItems.length < minLength) {
+    throw new Error("INVALID_BRIEF");
+  }
+
+  return usefulItems;
+}
+
+function isPlaceholderItem(value: string): boolean {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[«»""„“.!?,:;]/g, "")
+    .replace(/\s+/g, " ");
+
+  if (PLACEHOLDER_EXACT.has(normalized)) {
+    return true;
+  }
+
+  return PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(normalized));
 }
