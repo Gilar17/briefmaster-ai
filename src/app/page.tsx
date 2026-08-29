@@ -135,7 +135,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           provider,
-          message: text.trim(),
+          text: text.trim(),
         }),
         signal: controller.signal,
       });

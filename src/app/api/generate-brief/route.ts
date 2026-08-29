@@ -42,7 +42,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const brief = await generateBrief(parsed.value.provider, parsed.value.message);
+    const brief = await generateBrief(parsed.value.provider, parsed.value.text);
 
     const payload: GenerateBriefSuccessResponse = {
       success: true,
@@ -79,21 +79,21 @@ function parseGenerateBriefRequest(
     };
   }
 
-  if (typeof record.message !== "string") {
+  if (typeof record.text !== "string") {
     return { ok: false, error: INVALID_REQUEST_ERROR };
   }
 
-  const message = record.message.trim();
+  const text = record.text.trim();
 
-  if (message.length === 0) {
+  if (text.length === 0) {
     return { ok: false, error: EMPTY_MESSAGE_ERROR };
   }
 
-  if (message.length < MIN_MESSAGE_LENGTH) {
+  if (text.length < MIN_MESSAGE_LENGTH) {
     return { ok: false, error: SHORT_MESSAGE_ERROR };
   }
 
-  if (message.length > MAX_MESSAGE_LENGTH) {
+  if (text.length > MAX_MESSAGE_LENGTH) {
     return { ok: false, error: LONG_MESSAGE_ERROR };
   }
 
@@ -101,7 +101,7 @@ function parseGenerateBriefRequest(
     ok: true,
     value: {
       provider: record.provider,
-      message,
+      text,
     },
   };
 }

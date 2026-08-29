@@ -17,10 +17,12 @@ export type Brief = {
   recommendedWorkflow: string[];
 };
 
-export type GenerateBriefRequest = {
+export type BriefRequest = {
+  text: string;
   provider: AIProvider;
-  message: string;
 };
+
+export type GenerateBriefRequest = BriefRequest;
 
 export type GenerateBriefSuccessResponse = {
   success: true;
