@@ -53,7 +53,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json(payload);
   } catch (error) {
     if (error instanceof BriefGenerationError) {
-      return errorResponse(error.message, error.httpStatus, error.diagnostic);
+      return errorResponse(error.message, error.httpStatus);
     }
 
     return errorResponse(UNAVAILABLE_ERROR, 503);
@@ -110,20 +110,11 @@ function isAIProvider(value: unknown): value is AIProvider {
   return value === "openrouter" || value === "openai";
 }
 
-function errorResponse(
-  error: string,
-  status: number,
-  diagnostic?: BriefGenerationError["diagnostic"],
-): Response {
+function errorResponse(error: string, status: number): Response {
   const payload: GenerateBriefErrorResponse = {
     success: false,
     error,
   };
-  const headers: Record<string, string> = {};
 
-  if (diagnostic && diagnostic.provider === "openai") {
-    headers["x-briefmaster-diag"] = JSON.stringify(diagnostic);
-  }
-
-  return Response.json(payload, { status, headers });
+  return Response.json(payload, { status });
 }
