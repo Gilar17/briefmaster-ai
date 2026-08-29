@@ -8,6 +8,10 @@ const MAX_OUTPUT_TOKENS = 3000;
 const USER_ERROR = {
   config: "Выбранный AI-провайдер пока не настроен. Проверьте переменные окружения.",
   unavailable: "AI-сервис временно недоступен. Попробуйте ещё раз.",
+  billing:
+    "На счёте выбранного AI-сервиса недостаточно средств. Пополните баланс и попробуйте снова.",
+  region:
+    "Выбранный AI-сервис недоступен в текущем регионе. Попробуйте другого провайдера.",
   invalidResponse:
     "Не удалось обработать ответ AI. Попробуйте сформировать бриф ещё раз.",
 } as const;
@@ -102,7 +106,7 @@ async function requestChatCompletion(
   }
 
   if (!response.ok) {
-    throw new BriefGenerationError("unavailable");
+    throw await mapProviderHttpError(response);
   }
 
   let payload: unknown;
@@ -136,6 +140,78 @@ function buildChatCompletionBody(
   }
 
   return body;
+}
+
+async function mapProviderHttpError(response: Response): Promise<never> {
+  let payload: unknown;
+
+  try {
+    payload = await response.json();
+  } catch {
+    throw new BriefGenerationError("unavailable");
+  }
+
+  const code = readProviderErrorCode(payload);
+  const message = readProviderErrorMessage(payload);
+
+  if (
+    response.status === 402 ||
+    code === "insufficient_quota" ||
+    code === "billing_not_active" ||
+    code === "billing_hard_limit_reached" ||
+    code === "credit_balance_exhausted" ||
+    code === "organization_spend_limit_exceeded" ||
+    code === "project_spend_limit_exceeded" ||
+    message.includes("quota") ||
+    message.includes("billing") ||
+    message.includes("credit")
+  ) {
+    throw new BriefGenerationError("billing");
+  }
+
+  if (
+    response.status === 403 ||
+    code === "unsupported_country_region_territory" ||
+    message.includes("country") ||
+    message.includes("territory")
+  ) {
+    throw new BriefGenerationError("region");
+  }
+
+  if (code === "invalid_api_key" || response.status === 401) {
+    throw new BriefGenerationError("config");
+  }
+
+  throw new BriefGenerationError("unavailable");
+}
+
+function readProviderErrorCode(payload: unknown): string {
+  if (!isPlainObject(payload) || !isPlainObject(payload.error)) {
+    return "";
+  }
+
+  const code = payload.error.code;
+  const type = payload.error.type;
+
+  if (typeof code === "string" && code.trim()) {
+    return code.trim();
+  }
+
+  if (typeof type === "string" && type.trim()) {
+    return type.trim();
+  }
+
+  return "";
+}
+
+function readProviderErrorMessage(payload: unknown): string {
+  if (!isPlainObject(payload) || !isPlainObject(payload.error)) {
+    return "";
+  }
+
+  return typeof payload.error.message === "string"
+    ? payload.error.message.toLowerCase()
+    : "";
 }
 
 function buildHeaders(config: ChatProviderConfig): HeadersInit {
