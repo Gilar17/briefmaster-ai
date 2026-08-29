@@ -126,13 +126,13 @@ function buildChatCompletionBody(
       { role: "system", content: BRIEF_SYSTEM_PROMPT },
       { role: "user", content: buildUserPrompt(message) },
     ],
-    temperature: 0.2,
   };
 
   if (config.provider === "openai") {
     body.max_completion_tokens = MAX_OUTPUT_TOKENS;
   } else {
     body.max_tokens = MAX_OUTPUT_TOKENS;
+    body.temperature = 0.2;
   }
 
   return body;
