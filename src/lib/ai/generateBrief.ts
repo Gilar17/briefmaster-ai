@@ -94,15 +94,7 @@ async function requestChatCompletion(
     response = await fetch(config.url, {
       method: "POST",
       headers: buildHeaders(config),
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: "system", content: BRIEF_SYSTEM_PROMPT },
-          { role: "user", content: buildUserPrompt(message) },
-        ],
-        max_tokens: MAX_OUTPUT_TOKENS,
-        temperature: 0.2,
-      }),
+      body: JSON.stringify(buildChatCompletionBody(config, message)),
       signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
     });
   } catch {
@@ -122,6 +114,28 @@ async function requestChatCompletion(
   }
 
   return readAssistantContent(payload);
+}
+
+function buildChatCompletionBody(
+  config: ChatProviderConfig,
+  message: string,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    model: config.model,
+    messages: [
+      { role: "system", content: BRIEF_SYSTEM_PROMPT },
+      { role: "user", content: buildUserPrompt(message) },
+    ],
+    temperature: 0.2,
+  };
+
+  if (config.provider === "openai") {
+    body.max_completion_tokens = MAX_OUTPUT_TOKENS;
+  } else {
+    body.max_tokens = MAX_OUTPUT_TOKENS;
+  }
+
+  return body;
 }
 
 function buildHeaders(config: ChatProviderConfig): HeadersInit {
