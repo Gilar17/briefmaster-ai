@@ -281,10 +281,15 @@ export default function WorkPlanModal({
         <div className="flex flex-col gap-2 sm:flex-row">
           <button
             type="button"
+            aria-live="polite"
             onClick={handleCopyPlan}
-            className="ui-focus inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page sm:w-auto"
+            className={`ui-focus inline-flex min-h-11 w-full min-w-0 items-center justify-center rounded-[var(--radius-control)] px-4 text-sm font-medium transition-colors sm:w-auto sm:min-w-[12.5rem] ${
+              copied
+                ? "border border-success bg-success text-white"
+                : "border border-line bg-card text-ink hover:bg-page"
+            }`}
           >
-            Скопировать план
+            {copied ? "✓ План скопирован" : "Скопировать план"}
           </button>
           <button
             type="button"
@@ -294,14 +299,6 @@ export default function WorkPlanModal({
             Закрыть
           </button>
         </div>
-        {copied ? (
-          <p
-            role="status"
-            className="mt-3 w-fit rounded-[var(--radius-control)] bg-success-soft px-3 py-2 text-sm font-medium text-success"
-          >
-            План скопирован
-          </p>
-        ) : null}
         {copyError ? (
           <p role="alert" className="mt-3 text-sm leading-5 text-danger">
             {copyError}

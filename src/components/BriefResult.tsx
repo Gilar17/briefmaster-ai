@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { AIProvider, Brief, RequestStatus } from "@/types/brief";
 import { AlertIcon, DocumentIcon } from "@/components/UiIcons";
 
@@ -21,13 +22,18 @@ type BriefResultProps = {
   apiError: string;
   onCopy: () => void;
   onReset: () => void;
-  onNotify: (message: string) => void;
   onOpenPlan: () => void;
   planOpen: boolean;
 };
 
+const COPY_FEEDBACK_MS = 2800;
+
 const SECTION_ACTION_CLASS =
-  "ui-focus inline-flex min-h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-[var(--radius-control)] border border-line bg-card px-3 text-xs font-medium text-ink transition-colors hover:bg-page";
+  "ui-focus inline-flex min-h-9 min-w-[7.75rem] shrink-0 items-center justify-center whitespace-nowrap rounded-[var(--radius-control)] border px-3 text-xs font-medium transition-colors";
+
+const SECTION_ACTION_IDLE_CLASS = `${SECTION_ACTION_CLASS} border-line bg-card text-ink hover:bg-page`;
+
+const SECTION_ACTION_SUCCESS_CLASS = `${SECTION_ACTION_CLASS} border-success bg-success text-white`;
 
 const PLACEHOLDER_ITEMS = [
   "Цель и аудитория",
@@ -108,20 +114,66 @@ export default function BriefResult({
   apiError,
   onCopy,
   onReset,
-  onNotify,
   onOpenPlan,
   planOpen,
 }: BriefResultProps) {
-  async function copySection(title: string, content: string | string[]) {
+  const [copiedSectionIds, setCopiedSectionIds] = useState<Record<string, boolean>>(
+    {},
+  );
+  const sectionTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {},
+  );
+
+  useEffect(() => {
+    const timers = sectionTimersRef.current;
+
+    return () => {
+      Object.values(timers).forEach((timer) => {
+        clearTimeout(timer);
+      });
+    };
+  }, []);
+
+  function markSectionCopied(sectionId: string) {
+    const timers = sectionTimersRef.current;
+
+    if (timers[sectionId]) {
+      clearTimeout(timers[sectionId]);
+    }
+
+    setCopiedSectionIds((current) => ({
+      ...current,
+      [sectionId]: true,
+    }));
+
+    timers[sectionId] = setTimeout(() => {
+      setCopiedSectionIds((current) => {
+        const next = { ...current };
+        delete next[sectionId];
+        return next;
+      });
+      delete timers[sectionId];
+    }, COPY_FEEDBACK_MS);
+  }
+
+  async function copySection(
+    sectionId: string,
+    title: string,
+    content: string | string[],
+  ) {
     try {
       if (!navigator.clipboard) {
         throw new Error("Clipboard API is not available");
       }
 
       await navigator.clipboard.writeText(formatSectionAsText(title, content));
-      onNotify("Раздел скопирован");
+      markSectionCopied(sectionId);
     } catch {
-      onNotify("Не удалось скопировать раздел.");
+      setCopiedSectionIds((current) => {
+        const next = { ...current };
+        delete next[sectionId];
+        return next;
+      });
     }
   }
 
@@ -192,9 +244,15 @@ export default function BriefResult({
         </div>
 
         <div className="space-y-3">
-          {sections.map((section, index) => (
+          {sections.map((section, index) => {
+            const sectionId = section.id;
+            const sectionCopied = Boolean(
+              sectionId && copiedSectionIds[sectionId],
+            );
+
+            return (
             <article
-              id={section.id}
+              id={sectionId}
               key={section.title}
               className={`min-w-0 scroll-mt-8 break-words rounded-[var(--radius-control)] border border-line p-4 ${
                 section.highlight ? "bg-brand-soft" : "bg-page"
@@ -207,16 +265,25 @@ export default function BriefResult({
                 </h3>
                 {section.copyable || section.showPlanButton ? (
                   <div className="flex flex-wrap gap-2">
-                    {section.copyable ? (
+                    {section.copyable && sectionId ? (
                       <button
                         type="button"
+                        aria-live="polite"
                         onClick={(event) => {
                           event.preventDefault();
-                          void copySection(section.title, section.content);
+                          void copySection(
+                            sectionId,
+                            section.title,
+                            section.content,
+                          );
                         }}
-                        className={SECTION_ACTION_CLASS}
+                        className={
+                          sectionCopied
+                            ? SECTION_ACTION_SUCCESS_CLASS
+                            : SECTION_ACTION_IDLE_CLASS
+                        }
                       >
-                        Скопировать
+                        {sectionCopied ? "✓ Скопирован" : "Скопировать"}
                       </button>
                     ) : null}
                     {section.showPlanButton ? (
@@ -230,7 +297,7 @@ export default function BriefResult({
                           event.preventDefault();
                           onOpenPlan();
                         }}
-                        className={SECTION_ACTION_CLASS}
+                        className={SECTION_ACTION_IDLE_CLASS}
                       >
                         Открыть план
                       </button>
@@ -250,20 +317,26 @@ export default function BriefResult({
                 </p>
               )}
             </article>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mt-5 border-t border-line pt-4">
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
+              aria-live="polite"
               onClick={(event) => {
                 event.preventDefault();
                 onCopy();
               }}
-              className="ui-focus inline-flex min-h-12 w-full items-center justify-center rounded-[var(--radius-control)] bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active sm:w-auto"
+              className={`ui-focus inline-flex min-h-12 w-full min-w-0 items-center justify-center rounded-[var(--radius-control)] px-4 text-sm font-medium text-white transition-colors sm:w-auto sm:min-w-[13.25rem] ${
+                copied
+                  ? "bg-success"
+                  : "bg-brand hover:bg-brand-hover active:bg-brand-active"
+              }`}
             >
-              Скопировать бриф
+              {copied ? "✓ Бриф скопирован" : "Скопировать бриф"}
             </button>
             <button
               type="button"
@@ -276,14 +349,6 @@ export default function BriefResult({
               Создать новый бриф
             </button>
           </div>
-          {copied ? (
-            <p
-              role="status"
-              className="mt-3 w-fit rounded-[var(--radius-control)] bg-success-soft px-3 py-2 text-sm font-medium text-success"
-            >
-              Бриф скопирован
-            </p>
-          ) : null}
           {copyError ? (
             <div
               role="alert"

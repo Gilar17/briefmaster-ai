@@ -12,6 +12,7 @@ import WorkPlanModal, {
   type PlanProgress,
 } from "@/components/WorkPlanModal";
 import {
+  AlertIcon,
   BrandMark,
   QuestionsIcon,
   SectionsIcon,
@@ -34,7 +35,8 @@ const UNAVAILABLE_ERROR =
 const INVALID_RESPONSE_ERROR =
   "Не удалось обработать ответ AI. Попробуйте сформировать бриф ещё раз.";
 
-const TOAST_DURATION_MS = 2800;
+const BRIEF_HINT_DURATION_MS = 3000;
+const COPY_FEEDBACK_MS = 2800;
 
 const ADVANTAGES = [
   {
@@ -56,9 +58,6 @@ const ADVANTAGES = [
 
 const ADVANTAGE_CARD_CLASS =
   "ui-focus flex h-full min-h-[92px] w-full cursor-pointer gap-3 rounded-[var(--radius-card)] border border-line bg-card p-4 text-left no-underline transition-colors hover:border-brand/35 hover:bg-page";
-
-type ToastTone = "info" | "success" | "danger";
-type ToastState = { text: string; tone: ToastTone };
 
 function scrollToBriefSection(targetId: string) {
   const prefersReducedMotion = window.matchMedia(
@@ -99,18 +98,23 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
   const [apiError, setApiError] = useState("");
-  const [toast, setToast] = useState<ToastState | null>(null);
+  const [briefHintVisible, setBriefHintVisible] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [planProgress, setPlanProgress] = useState<PlanProgress>({});
   const abortRef = useRef<AbortController | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const briefHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
 
-      if (toastTimerRef.current !== null) {
-        clearTimeout(toastTimerRef.current);
+      if (briefHintTimerRef.current !== null) {
+        clearTimeout(briefHintTimerRef.current);
+      }
+
+      if (copiedTimerRef.current !== null) {
+        clearTimeout(copiedTimerRef.current);
       }
     };
   }, []);
@@ -126,9 +130,29 @@ export default function Home() {
     apiError.length > 0 ||
     provider !== "openrouter";
 
+  function clearCopiedTimer() {
+    if (copiedTimerRef.current !== null) {
+      clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = null;
+    }
+  }
+
+  function clearBriefHintTimer() {
+    if (briefHintTimerRef.current !== null) {
+      clearTimeout(briefHintTimerRef.current);
+      briefHintTimerRef.current = null;
+    }
+  }
+
   function resetCopyState() {
+    clearCopiedTimer();
     setCopied(false);
     setCopyError("");
+  }
+
+  function hideBriefHint() {
+    clearBriefHintTimer();
+    setBriefHintVisible(false);
   }
 
   function resetPlanState() {
@@ -136,25 +160,22 @@ export default function Home() {
     setPlanProgress({});
   }
 
-  function showToast(text: string, tone: ToastTone) {
-    setToast({ text, tone });
-
-    if (toastTimerRef.current !== null) {
-      clearTimeout(toastTimerRef.current);
-    }
-
-    toastTimerRef.current = setTimeout(() => {
-      setToast(null);
-      toastTimerRef.current = null;
-    }, TOAST_DURATION_MS);
+  function showBriefHint() {
+    setBriefHintVisible(true);
+    clearBriefHintTimer();
+    briefHintTimerRef.current = setTimeout(() => {
+      setBriefHintVisible(false);
+      briefHintTimerRef.current = null;
+    }, BRIEF_HINT_DURATION_MS);
   }
 
   function handleAdvantageActivate(targetId: string) {
     if (!hasBrief) {
-      showToast("Сначала сформируйте бриф", "info");
+      showBriefHint();
       return;
     }
 
+    hideBriefHint();
     scrollToBriefSection(targetId);
   }
 
@@ -203,6 +224,7 @@ export default function Home() {
     const nextValidationMessage = getValidationMessage(text);
     setValidationMessage(nextValidationMessage);
     resetCopyState();
+    hideBriefHint();
     setApiError("");
 
     if (nextValidationMessage) {
@@ -283,6 +305,7 @@ export default function Home() {
     setResultProvider(null);
     setApiError("");
     resetCopyState();
+    hideBriefHint();
     resetPlanState();
   }
 
@@ -306,6 +329,11 @@ export default function Home() {
       await navigator.clipboard.writeText(readableBrief);
       setCopied(true);
       setCopyError("");
+      clearCopiedTimer();
+      copiedTimerRef.current = setTimeout(() => {
+        setCopied(false);
+        copiedTimerRef.current = null;
+      }, COPY_FEEDBACK_MS);
     } catch {
       setCopied(false);
       setCopyError(
@@ -389,6 +417,15 @@ export default function Home() {
               );
             })}
           </ul>
+          {!hasBrief && briefHintVisible ? (
+            <div
+              role="status"
+              className="mt-3 flex gap-2 rounded-[var(--radius-control)] bg-danger-soft px-3 py-2.5 text-sm leading-5 text-danger"
+            >
+              <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>Сначала сформируйте бриф</p>
+            </div>
+          ) : null}
         </section>
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
@@ -408,6 +445,7 @@ export default function Home() {
           </div>
           <div className="min-w-0 w-full lg:w-[56%]">
             <BriefResult
+              key={status}
               status={status}
               brief={brief}
               provider={resultProvider ?? provider}
@@ -416,12 +454,6 @@ export default function Home() {
               apiError={apiError}
               onCopy={handleCopy}
               onReset={handleClear}
-              onNotify={(message) => {
-                showToast(
-                  message,
-                  message === "Раздел скопирован" ? "success" : "danger",
-                );
-              }}
               onOpenPlan={() => {
                 setPlanOpen(true);
               }}
@@ -443,27 +475,6 @@ export default function Home() {
           onDateChange={handlePlanDateChange}
         />
       ) : null}
-
-      <div
-        aria-live="polite"
-        aria-atomic="true"
-        className="pointer-events-none fixed inset-x-4 top-[4.75rem] z-50 flex justify-center"
-      >
-        {toast ? (
-          <p
-            role="status"
-            className={`pointer-events-auto max-w-sm rounded-[var(--radius-control)] px-3 py-2 text-center text-sm font-medium shadow-[var(--shadow-card)] ${
-              toast.tone === "success"
-                ? "bg-success-soft text-success"
-                : toast.tone === "danger"
-                  ? "bg-danger-soft text-danger"
-                  : "bg-brand-soft text-ink"
-            }`}
-          >
-            {toast.text}
-          </p>
-        ) : null}
-      </div>
 
       <footer className="mt-auto border-t border-line bg-card">
         <p className={`${PAGE_SHELL} py-4 text-sm leading-6 text-muted`}>
