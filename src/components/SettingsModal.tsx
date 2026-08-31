@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { BrandMark, CloseIcon } from "@/components/UiIcons";
-import type { UiSettings, UiTheme } from "@/lib/ui-settings";
+import {
+  ACCENT_COLORS,
+  type UiSettings,
+  type UiTheme,
+} from "@/lib/ui-settings";
 import type { AIProvider } from "@/types/brief";
 
 type SettingsModalProps = {
@@ -272,6 +276,41 @@ export default function SettingsModal({
             </SettingsChoiceRow>
           </div>
 
+          <div className="settings-accent-block">
+            <p id="accent-color-label" className="text-sm leading-5 text-ink">
+              Основной цвет
+            </p>
+            <div
+              role="group"
+              aria-labelledby="accent-color-label"
+              className="accent-swatches"
+            >
+              {ACCENT_COLORS.map((color) => {
+                const selected = settings.accentColor === color.id;
+
+                return (
+                  <button
+                    key={color.id}
+                    type="button"
+                    title={color.label}
+                    aria-label={color.label}
+                    aria-pressed={selected}
+                    onClick={() => {
+                      onSettingsChange({ accentColor: color.id });
+                    }}
+                    className={`accent-swatch ui-focus ${
+                      selected ? "is-selected" : ""
+                    }`}
+                    style={{
+                      backgroundColor: color.hex,
+                      color: color.hex,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
           {resetConfirming ? (
             <div className="mt-3 rounded-[var(--radius-control)] border border-line bg-page px-3 py-3">
               <p className="text-sm leading-6 text-ink">
@@ -290,7 +329,7 @@ export default function SettingsModal({
                 <button
                   type="button"
                   onClick={handleResetSettings}
-                  className="ui-focus inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] bg-brand px-3 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active sm:flex-none sm:min-w-[6.75rem]"
+                  className="ui-focus inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] bg-brand px-3 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover active:bg-brand-active sm:flex-none sm:min-w-[6.75rem]"
                 >
                   Сбросить
                 </button>

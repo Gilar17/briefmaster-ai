@@ -330,10 +330,10 @@ export default function BriefResult({
                 event.preventDefault();
                 onCopy();
               }}
-              className={`ui-focus inline-flex min-h-12 w-full min-w-0 items-center justify-center rounded-[var(--radius-control)] px-4 text-sm font-medium text-white transition-colors sm:w-auto sm:min-w-[13.25rem] ${
+              className={`ui-focus inline-flex min-h-12 w-full min-w-0 items-center justify-center rounded-[var(--radius-control)] px-4 text-sm font-medium transition-colors sm:w-auto sm:min-w-[13.25rem] ${
                 copied
-                  ? "bg-success"
-                  : "bg-brand hover:bg-brand-hover active:bg-brand-active"
+                  ? "bg-success text-white"
+                  : "bg-brand text-brand-foreground hover:bg-brand-hover active:bg-brand-active"
               }`}
             >
               {copied ? "✓ Бриф скопирован" : "Скопировать бриф"}

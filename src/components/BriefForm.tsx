@@ -130,7 +130,7 @@ export default function BriefForm({
                   <span className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium text-ink">{item.label}</span>
                     {selected ? (
-                      <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-medium leading-4 text-white">
+                      <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-medium leading-4 text-brand-foreground">
                         Выбран
                       </span>
                     ) : null}
@@ -192,7 +192,7 @@ export default function BriefForm({
         <button
           type="submit"
           disabled={isLoading}
-          className="ui-focus inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active disabled:cursor-not-allowed disabled:bg-brand/50 disabled:hover:bg-brand/50 disabled:active:bg-brand/50"
+          className="ui-focus inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-brand px-4 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover active:bg-brand-active disabled:cursor-not-allowed disabled:bg-brand/50 disabled:hover:bg-brand/50 disabled:active:bg-brand/50"
         >
           {isLoading ? (
             <>

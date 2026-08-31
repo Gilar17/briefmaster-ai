@@ -18,13 +18,14 @@ export const metadata: Metadata = {
     "AI-помощник для преобразования сообщений клиента в структурированный бриф на разработку сайта",
 };
 
-const THEME_BOOTSTRAP = `(function(){try{var raw=localStorage.getItem("briefmaster-ui-settings");if(!raw)return;var theme=JSON.parse(raw).theme;if(theme==="dark"||theme==="light"){document.documentElement.setAttribute("data-theme",theme);}}catch(e){}})();`;
+const THEME_BOOTSTRAP = `(function(){try{var raw=localStorage.getItem("briefmaster-ui-settings");if(!raw)return;var s=JSON.parse(raw);if(s.theme==="dark"||s.theme==="light"){document.documentElement.setAttribute("data-theme",s.theme);}var accents=["purple","blue","cyan","teal","green","olive","orange","red","pink","sand"];if(accents.indexOf(s.accentColor)!==-1){document.documentElement.setAttribute("data-accent",s.accentColor);}}catch(e){}})();`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ru"
       data-theme="light"
+      data-accent="purple"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >

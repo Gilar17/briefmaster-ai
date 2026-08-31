@@ -5,12 +5,49 @@ import type { AIProvider } from "@/types/brief";
 
 export type UiTheme = "light" | "dark";
 
+export type AccentColorId =
+  | "purple"
+  | "blue"
+  | "cyan"
+  | "teal"
+  | "green"
+  | "olive"
+  | "orange"
+  | "red"
+  | "pink"
+  | "sand";
+
+export type AccentColor = {
+  id: AccentColorId;
+  label: string;
+  hex: string;
+  foreground: string;
+};
+
+export const ACCENT_COLORS: AccentColor[] = [
+  { id: "purple", label: "Фиолетовый", hex: "#6D4DB3", foreground: "#ffffff" },
+  { id: "blue", label: "Синий", hex: "#3F63C8", foreground: "#ffffff" },
+  { id: "cyan", label: "Голубой", hex: "#278FB5", foreground: "#ffffff" },
+  { id: "teal", label: "Бирюзовый", hex: "#268E87", foreground: "#ffffff" },
+  { id: "green", label: "Зелёный", hex: "#438A63", foreground: "#ffffff" },
+  { id: "olive", label: "Оливковый", hex: "#7A8245", foreground: "#ffffff" },
+  { id: "orange", label: "Оранжевый", hex: "#C67A38", foreground: "#ffffff" },
+  { id: "red", label: "Красный", hex: "#B95656", foreground: "#ffffff" },
+  { id: "pink", label: "Розовый", hex: "#B75C87", foreground: "#ffffff" },
+  { id: "sand", label: "Песочный", hex: "#FFB77B", foreground: "#3B2A1C" },
+];
+
+const ACCENT_IDS = new Set<AccentColorId>(
+  ACCENT_COLORS.map((color) => color.id),
+);
+
 export type UiSettings = {
   confirmBeforeClear: boolean;
   defaultProvider: AIProvider;
   mobileAutoScroll: boolean;
   uiHints: boolean;
   theme: UiTheme;
+  accentColor: AccentColorId;
 };
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
@@ -19,6 +56,7 @@ export const DEFAULT_UI_SETTINGS: UiSettings = {
   mobileAutoScroll: true,
   uiHints: true,
   theme: "light",
+  accentColor: "purple",
 };
 
 export const UI_SETTINGS_STORAGE_KEY = "briefmaster-ui-settings";
@@ -34,6 +72,10 @@ function isAiProvider(value: unknown): value is AIProvider {
 
 function isUiTheme(value: unknown): value is UiTheme {
   return value === "light" || value === "dark";
+}
+
+export function isAccentColorId(value: unknown): value is AccentColorId {
+  return typeof value === "string" && ACCENT_IDS.has(value as AccentColorId);
 }
 
 function readBoolean(value: unknown, fallback: boolean): boolean {
@@ -68,6 +110,9 @@ function parseSettings(raw: string | null): UiSettings {
       ),
       uiHints: readBoolean(record.uiHints, DEFAULT_UI_SETTINGS.uiHints),
       theme: isUiTheme(record.theme) ? record.theme : DEFAULT_UI_SETTINGS.theme,
+      accentColor: isAccentColorId(record.accentColor)
+        ? record.accentColor
+        : DEFAULT_UI_SETTINGS.accentColor,
     };
   } catch {
     return DEFAULT_UI_SETTINGS;
@@ -81,15 +126,17 @@ function serializeSettings(settings: UiSettings): string {
     mobileAutoScroll: settings.mobileAutoScroll,
     uiHints: settings.uiHints,
     theme: settings.theme,
+    accentColor: settings.accentColor,
   });
 }
 
-export function applyTheme(theme: UiTheme): void {
+export function applyUiAppearance(theme: UiTheme, accentColor: AccentColorId): void {
   if (typeof document === "undefined") {
     return;
   }
 
   document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.accent = accentColor;
 }
 
 function readStoredSettings(): UiSettings {
@@ -159,6 +206,7 @@ export function saveUiSettings(settings: UiSettings): void {
     mobileAutoScroll: settings.mobileAutoScroll,
     uiHints: settings.uiHints,
     theme: settings.theme,
+    accentColor: settings.accentColor,
   };
 
   try {
@@ -168,7 +216,7 @@ export function saveUiSettings(settings: UiSettings): void {
   }
 
   hasRead = true;
-  applyTheme(settings.theme);
+  applyUiAppearance(settings.theme, settings.accentColor);
   listeners.forEach((listener) => {
     listener();
   });
@@ -182,8 +230,8 @@ export function useUiSettings() {
   );
 
   useLayoutEffect(() => {
-    applyTheme(settings.theme);
-  }, [settings.theme]);
+    applyUiAppearance(settings.theme, settings.accentColor);
+  }, [settings.theme, settings.accentColor]);
 
   const updateSettings = useCallback((patch: Partial<UiSettings>) => {
     const current = readStoredSettings();
@@ -193,6 +241,7 @@ export function useUiSettings() {
       mobileAutoScroll: patch.mobileAutoScroll ?? current.mobileAutoScroll,
       uiHints: patch.uiHints ?? current.uiHints,
       theme: patch.theme ?? current.theme,
+      accentColor: patch.accentColor ?? current.accentColor,
     });
   }, []);
 
