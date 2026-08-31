@@ -9,6 +9,7 @@ import BriefForm, {
 } from "@/components/BriefForm";
 import BriefResult, { formatBriefAsText } from "@/components/BriefResult";
 import WorkPlanModal, {
+  getPlanItem,
   getTodayIsoDate,
   type PlanProgress,
 } from "@/components/WorkPlanModal";
@@ -260,27 +261,53 @@ export default function Home() {
   }
 
   function handlePlanToggle(index: number, completed: boolean) {
-    setPlanProgress((current) => ({
-      ...current,
-      [index]: completed
-        ? { completed: true, date: getTodayIsoDate() }
-        : { completed: false, date: "" },
-    }));
+    setPlanProgress((current) => {
+      const item = getPlanItem(current, index);
+
+      return {
+        ...current,
+        [index]: completed
+          ? {
+              ...item,
+              completed: true,
+              completedDate: getTodayIsoDate(),
+            }
+          : {
+              ...item,
+              completed: false,
+              completedDate: "",
+            },
+      };
+    });
   }
 
-  function handlePlanDateChange(index: number, date: string) {
+  function handlePlanPlannedDateChange(index: number, date: string) {
     setPlanProgress((current) => {
-      const item = current[index];
+      const item = getPlanItem(current, index);
 
-      if (!item?.completed) {
+      return {
+        ...current,
+        [index]: {
+          ...item,
+          plannedDate: date,
+        },
+      };
+    });
+  }
+
+  function handlePlanCompletedDateChange(index: number, date: string) {
+    setPlanProgress((current) => {
+      const item = getPlanItem(current, index);
+
+      if (!item.completed) {
         return current;
       }
 
       return {
         ...current,
         [index]: {
-          completed: true,
-          date: date || getTodayIsoDate(),
+          ...item,
+          completedDate: date,
         },
       };
     });
@@ -552,7 +579,8 @@ export default function Home() {
             setPlanOpen(false);
           }}
           onToggle={handlePlanToggle}
-          onDateChange={handlePlanDateChange}
+          onPlannedDateChange={handlePlanPlannedDateChange}
+          onCompletedDateChange={handlePlanCompletedDateChange}
         />
       ) : null}
 
