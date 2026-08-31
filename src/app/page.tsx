@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import BriefForm, {
+  BRIEF_SOURCE_DATA_ID,
   EXAMPLE_CLIENT_TEXT,
   MAX_TEXT_LENGTH,
   MIN_TEXT_LENGTH,
@@ -37,6 +38,9 @@ const INVALID_RESPONSE_ERROR =
 
 const BRIEF_HINT_DURATION_MS = 3000;
 const COPY_FEEDBACK_MS = 2800;
+const MOBILE_AUTO_SCROLL_MAX_WIDTH_PX = 768;
+const MOBILE_AUTO_SCROLL_DELAY_MS = 4000;
+const MOBILE_AUTO_SCROLL_MIN_DELTA_PX = 8;
 
 const ADVANTAGES = [
   {
@@ -104,6 +108,7 @@ export default function Home() {
   const abortRef = useRef<AbortController | null>(null);
   const briefHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasBriefRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -121,6 +126,81 @@ export default function Home() {
 
   const isLoading = status === "loading";
   const hasBrief = status === "success" && brief !== null;
+
+  useEffect(() => {
+    hasBriefRef.current = hasBrief;
+  }, [hasBrief]);
+
+  useEffect(() => {
+    if (window.innerWidth >= MOBILE_AUTO_SCROLL_MAX_WIDTH_PX) {
+      return;
+    }
+
+    const listenerController = new AbortController();
+    const { signal } = listenerController;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const initialScrollY = window.scrollY;
+
+    const cancelAutoScroll = () => {
+      cancelled = true;
+
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    const onUserIntent = () => {
+      cancelAutoScroll();
+    };
+
+    const onScroll = () => {
+      if (
+        Math.abs(window.scrollY - initialScrollY) < MOBILE_AUTO_SCROLL_MIN_DELTA_PX
+      ) {
+        return;
+      }
+
+      onUserIntent();
+    };
+
+    window.addEventListener("wheel", onUserIntent, { passive: true, signal });
+    window.addEventListener("touchmove", onUserIntent, { passive: true, signal });
+    window.addEventListener("touchstart", onUserIntent, { passive: true, signal });
+    window.addEventListener("scroll", onScroll, { passive: true, signal });
+    window.addEventListener("pointerdown", onUserIntent, { passive: true, signal });
+    window.addEventListener("keydown", onUserIntent, { signal });
+    document.addEventListener("focusin", onUserIntent, { signal });
+
+    timer = setTimeout(() => {
+      if (cancelled || hasBriefRef.current) {
+        return;
+      }
+
+      if (window.innerWidth >= MOBILE_AUTO_SCROLL_MAX_WIDTH_PX) {
+        return;
+      }
+
+      cancelled = true;
+
+      const target = document.getElementById(BRIEF_SOURCE_DATA_ID);
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      target?.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    }, MOBILE_AUTO_SCROLL_DELAY_MS);
+
+    return () => {
+      cancelAutoScroll();
+      listenerController.abort();
+    };
+  }, []);
+
   const canClear =
     text.length > 0 ||
     brief !== null ||

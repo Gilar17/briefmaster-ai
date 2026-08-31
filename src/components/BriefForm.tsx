@@ -10,6 +10,7 @@ import { AlertIcon, InfoIcon } from "@/components/UiIcons";
 
 export const MIN_TEXT_LENGTH = MIN_MESSAGE_LENGTH;
 export const MAX_TEXT_LENGTH = MAX_MESSAGE_LENGTH;
+export const BRIEF_SOURCE_DATA_ID = "brief-source-data";
 
 export const EXAMPLE_CLIENT_TEXT =
   "Нужен современный сайт для компании, которая строит загородные дома в Московской области. Главная цель сайта — получать заявки на расчёт стоимости строительства. Клиенты — владельцы земельных участков и семьи, планирующие переезд за город. На сайте нужно показать услуги, готовые проекты домов, фотографии выполненных объектов, этапы работы и отзывы заказчиков. Нужны квиз для предварительного расчёта, форма обратного звонка и отправка заявок в Telegram. Предпочтительный стиль — современный минимализм, светлый фон, тёмно-синие акценты и крупные фотографии домов. У компании есть логотип и часть фотографий, но тексты для страниц ещё не подготовлены.";
@@ -59,9 +60,10 @@ export default function BriefForm({
 
   return (
     <form
+      id={BRIEF_SOURCE_DATA_ID}
       noValidate
       aria-labelledby="form-title"
-      className="ui-card p-5 sm:p-6"
+      className="ui-card scroll-mt-4 p-5 sm:p-6"
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -77,12 +79,9 @@ export default function BriefForm({
         </p>
       </div>
 
-      <div className="mb-5 flex gap-3 rounded-[var(--radius-control)] bg-brand-soft px-3.5 py-3">
-        <InfoIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
-        <p className="text-sm leading-6 text-ink">
-          Текст обрабатывается выбранным AI-провайдером. Ключи хранятся только
-          на сервере.
-        </p>
+      <div className="mb-4 flex items-center gap-2 rounded-[var(--radius-control)] bg-brand-soft px-3 py-2">
+        <InfoIcon className="h-4 w-4 shrink-0 text-brand" />
+        <p className="text-sm leading-5 text-ink">Выберите AI-провайдера</p>
       </div>
 
       <fieldset className="mb-5 min-w-0">
