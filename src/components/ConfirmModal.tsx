@@ -101,7 +101,7 @@ export default function ConfirmModal({
         }
       }}
     >
-      <div className="px-4 py-4 sm:px-5">
+      <div className="p-4">
         <p
           id="confirm-dialog-message"
           className="text-sm leading-6 text-ink"
@@ -112,14 +112,14 @@ export default function ConfirmModal({
           <button
             type="button"
             onClick={handleCancel}
-            className="ui-focus inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-3 text-sm font-medium text-ink transition-colors hover:bg-page sm:flex-none sm:px-4 sm:min-w-[7.25rem]"
+            className="ui-focus inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-3 text-sm font-medium text-ink transition-colors hover:bg-page sm:flex-none sm:min-w-[6.75rem]"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="ui-focus inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] bg-brand px-3 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active sm:flex-none sm:px-4 sm:min-w-[7.25rem]"
+            className="ui-focus inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] bg-brand px-3 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active sm:flex-none sm:min-w-[6.75rem]"
           >
             {confirmLabel}
           </button>

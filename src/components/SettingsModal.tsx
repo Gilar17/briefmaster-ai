@@ -17,7 +17,6 @@ const APP_FEATURES = [
   "Формирует готовый бриф",
   "Подготавливает вопросы к клиенту",
   "Предлагает структуру сайта",
-  "Показывает порядок работы",
 ] as const;
 
 const PROVIDER_OPTIONS: { value: AIProvider; label: string }[] = [
@@ -173,6 +172,15 @@ export default function SettingsModal({
                 <span>{feature}</span>
               </li>
             ))}
+            <li className="flex gap-2">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+              <div className="min-w-0">
+                <p>Формирует порядок работы</p>
+                <p className="mt-0.5 pl-0.5 text-[13px] leading-5 text-muted">
+                  Позволяет планировать этапы и даты выполнения
+                </p>
+              </div>
+            </li>
           </ul>
           <p className="mt-4 text-sm leading-6 text-muted">Версия 1.0.0</p>
         </section>
@@ -188,7 +196,7 @@ export default function SettingsModal({
             Локальные настройки
           </h3>
 
-          <div className="mt-3 flex flex-col gap-2">
+          <div className="settings-list">
             <SettingsSwitchRow
               id="confirm-clear-label"
               label="Подтверждать очистку данных"
@@ -213,10 +221,8 @@ export default function SettingsModal({
                     onClick={() => {
                       onSettingsChange({ defaultProvider: option.value });
                     }}
-                    className={`ui-focus inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-[10px] px-2.5 text-[13px] font-medium transition-colors ${
-                      selected
-                        ? "bg-brand text-white"
-                        : "text-ink hover:bg-card"
+                    className={`settings-segment-btn ui-focus ${
+                      selected ? "is-selected" : ""
                     }`}
                   >
                     {option.label}
@@ -255,10 +261,8 @@ export default function SettingsModal({
                     onClick={() => {
                       onSettingsChange({ theme: option.value });
                     }}
-                    className={`ui-focus inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-[10px] px-2.5 text-[13px] font-medium transition-colors ${
-                      selected
-                        ? "bg-brand text-white"
-                        : "text-ink hover:bg-card"
+                    className={`settings-segment-btn ui-focus ${
+                      selected ? "is-selected" : ""
                     }`}
                   >
                     {option.label}
@@ -279,14 +283,14 @@ export default function SettingsModal({
                   onClick={() => {
                     setResetConfirming(false);
                   }}
-                  className="ui-focus inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-3 text-sm font-medium text-ink transition-colors hover:bg-page sm:flex-none sm:min-w-[7.25rem]"
+                  className="ui-focus inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-3 text-sm font-medium text-ink transition-colors hover:bg-page sm:flex-none sm:min-w-[6.75rem]"
                 >
                   Отмена
                 </button>
                 <button
                   type="button"
                   onClick={handleResetSettings}
-                  className="ui-focus inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] bg-brand px-3 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active sm:flex-none sm:min-w-[7.25rem]"
+                  className="ui-focus inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] bg-brand px-3 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active sm:flex-none sm:min-w-[6.75rem]"
                 >
                   Сбросить
                 </button>
@@ -298,7 +302,7 @@ export default function SettingsModal({
               onClick={() => {
                 setResetConfirming(true);
               }}
-              className="ui-focus mt-3 inline-flex h-10 w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page active:bg-brand-soft sm:w-auto"
+              className="ui-focus mt-3 inline-flex h-9 max-w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-3 text-sm font-medium text-ink transition-colors hover:bg-page active:bg-brand-soft"
             >
               Сбросить локальные настройки
             </button>
@@ -310,7 +314,7 @@ export default function SettingsModal({
         <button
           type="button"
           onClick={handleClose}
-          className="ui-focus inline-flex h-10 w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page sm:w-auto"
+          className="ui-focus inline-flex h-9 items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-3 text-sm font-medium text-ink transition-colors hover:bg-page"
         >
           Закрыть
         </button>
@@ -332,7 +336,7 @@ function SettingsSwitchRow({
 }) {
   return (
     <div className="settings-row">
-      <p id={id} className="min-w-0 text-sm leading-5 text-ink">
+      <p id={id} className="min-w-0 flex-1 text-sm leading-5 text-ink">
         {label}
       </p>
       <button
@@ -363,14 +367,14 @@ function SettingsChoiceRow({
   children: ReactNode;
 }) {
   return (
-    <div className="settings-row settings-row-choice">
-      <p id={id} className="min-w-0 text-sm leading-5 text-ink">
+    <div className="settings-row">
+      <p id={id} className="min-w-0 flex-1 text-sm leading-5 text-ink">
         {label}
       </p>
       <div
         role="group"
         aria-labelledby={id}
-        className="flex min-w-0 w-full rounded-[12px] bg-card p-0.5"
+        className="settings-segment"
       >
         {children}
       </div>
