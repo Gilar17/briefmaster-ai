@@ -8,6 +8,8 @@ type BriefSection = {
   content: string | string[];
   highlight?: boolean;
   id?: string;
+  copyable?: boolean;
+  showPlanButton?: boolean;
 };
 
 type BriefResultProps = {
@@ -19,7 +21,13 @@ type BriefResultProps = {
   apiError: string;
   onCopy: () => void;
   onReset: () => void;
+  onNotify: (message: string) => void;
+  onOpenPlan: () => void;
+  planOpen: boolean;
 };
+
+const SECTION_ACTION_CLASS =
+  "ui-focus inline-flex min-h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-[var(--radius-control)] border border-line bg-card px-3 text-xs font-medium text-ink transition-colors hover:bg-page";
 
 const PLACEHOLDER_ITEMS = [
   "Цель и аудитория",
@@ -44,6 +52,7 @@ function getBriefSections(brief: Brief): BriefSection[] {
       title: "Предлагаемая структура сайта",
       content: brief.siteStructure,
       id: "brief-structure",
+      copyable: true,
     },
     { title: "Функциональные требования", content: brief.functionalRequirements },
     { title: "Пожелания по дизайну", content: brief.designPreferences },
@@ -57,13 +66,24 @@ function getBriefSections(brief: Brief): BriefSection[] {
       content: brief.clarificationQuestions,
       highlight: true,
       id: "brief-questions",
+      copyable: true,
     },
     {
       title: "Рекомендуемый порядок работы",
       content: brief.recommendedWorkflow,
       id: "brief-workflow",
+      copyable: true,
+      showPlanButton: true,
     },
   ];
+}
+
+export function formatSectionAsText(
+  title: string,
+  content: string | string[],
+): string {
+  const body = Array.isArray(content) ? content.join("\n") : content;
+  return `${title}\n\n${body}`;
 }
 
 export function formatBriefAsText(brief: Brief): string {
@@ -88,7 +108,23 @@ export default function BriefResult({
   apiError,
   onCopy,
   onReset,
+  onNotify,
+  onOpenPlan,
+  planOpen,
 }: BriefResultProps) {
+  async function copySection(title: string, content: string | string[]) {
+    try {
+      if (!navigator.clipboard) {
+        throw new Error("Clipboard API is not available");
+      }
+
+      await navigator.clipboard.writeText(formatSectionAsText(title, content));
+      onNotify("Раздел скопирован");
+    } catch {
+      onNotify("Не удалось скопировать раздел.");
+    }
+  }
+
   if (status === "loading") {
     return (
       <section
@@ -160,14 +196,48 @@ export default function BriefResult({
             <article
               id={section.id}
               key={section.title}
-              className={`min-w-0 scroll-mt-6 break-words rounded-[var(--radius-control)] border border-line p-4 ${
+              className={`min-w-0 scroll-mt-8 break-words rounded-[var(--radius-control)] border border-line p-4 ${
                 section.highlight ? "bg-brand-soft" : "bg-page"
               }`}
             >
-              <h3 className="text-sm font-semibold leading-6 text-ink">
-                <span className="mr-1.5 text-brand">{index + 1}.</span>
-                {section.title}
-              </h3>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <h3 className="min-w-0 text-sm font-semibold leading-6 text-ink">
+                  <span className="mr-1.5 text-brand">{index + 1}.</span>
+                  {section.title}
+                </h3>
+                {section.copyable || section.showPlanButton ? (
+                  <div className="flex flex-wrap gap-2">
+                    {section.copyable ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          void copySection(section.title, section.content);
+                        }}
+                        className={SECTION_ACTION_CLASS}
+                      >
+                        Скопировать
+                      </button>
+                    ) : null}
+                    {section.showPlanButton ? (
+                      <button
+                        type="button"
+                        id="open-work-plan"
+                        aria-haspopup="dialog"
+                        aria-expanded={planOpen}
+                        aria-controls="work-plan-dialog"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          onOpenPlan();
+                        }}
+                        className={SECTION_ACTION_CLASS}
+                      >
+                        Открыть план
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
               {Array.isArray(section.content) ? (
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 break-words text-ink">
                   {section.content.map((item) => (

@@ -109,3 +109,16 @@ export function AlertIcon({ className }: IconProps) {
     </IconBase>
   );
 }
+
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path
+        d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </IconBase>
+  );
+}

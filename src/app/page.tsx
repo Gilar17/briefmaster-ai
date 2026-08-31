@@ -7,6 +7,10 @@ import BriefForm, {
   MIN_TEXT_LENGTH,
 } from "@/components/BriefForm";
 import BriefResult, { formatBriefAsText } from "@/components/BriefResult";
+import WorkPlanModal, {
+  getTodayIsoDate,
+  type PlanProgress,
+} from "@/components/WorkPlanModal";
 import {
   BrandMark,
   QuestionsIcon,
@@ -30,32 +34,41 @@ const UNAVAILABLE_ERROR =
 const INVALID_RESPONSE_ERROR =
   "Не удалось обработать ответ AI. Попробуйте сформировать бриф ещё раз.";
 
-const RESULT_SECTION_ID = "brief-result";
+const TOAST_DURATION_MS = 2800;
 
 const ADVANTAGES = [
   {
-    title: "11 разделов готового брифа",
-    icon: SectionsIcon,
-    targetId: RESULT_SECTION_ID,
+    title: "Структура сайта",
+    icon: StructureIcon,
+    targetId: "brief-structure",
   },
   {
-    title: "Вопросы по недостающим данным",
+    title: "Что уточнить у клиента",
     icon: QuestionsIcon,
     targetId: "brief-questions",
   },
   {
-    title: "Структура сайта и план работ",
-    icon: StructureIcon,
-    targetId: "brief-structure",
+    title: "Порядок работы",
+    icon: SectionsIcon,
+    targetId: "brief-workflow",
   },
 ] as const;
 
-function scrollToPageSection(targetId: string) {
-  const target =
-    document.getElementById(targetId) ??
-    document.getElementById(RESULT_SECTION_ID);
+const ADVANTAGE_CARD_CLASS =
+  "ui-focus flex h-full min-h-[92px] w-full cursor-pointer gap-3 rounded-[var(--radius-card)] border border-line bg-card p-4 text-left no-underline transition-colors hover:border-brand/35 hover:bg-page";
 
-  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+type ToastTone = "info" | "success" | "danger";
+type ToastState = { text: string; tone: ToastTone };
+
+function scrollToBriefSection(targetId: string) {
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+
+  document.getElementById(targetId)?.scrollIntoView({
+    behavior: prefersReducedMotion ? "auto" : "smooth",
+    block: "start",
+  });
 }
 
 function getValidationMessage(text: string): string {
@@ -86,15 +99,24 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
   const [apiError, setApiError] = useState("");
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [planOpen, setPlanOpen] = useState(false);
+  const [planProgress, setPlanProgress] = useState<PlanProgress>({});
   const abortRef = useRef<AbortController | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
+
+      if (toastTimerRef.current !== null) {
+        clearTimeout(toastTimerRef.current);
+      }
     };
   }, []);
 
   const isLoading = status === "loading";
+  const hasBrief = status === "success" && brief !== null;
   const canClear =
     text.length > 0 ||
     brief !== null ||
@@ -107,6 +129,60 @@ export default function Home() {
   function resetCopyState() {
     setCopied(false);
     setCopyError("");
+  }
+
+  function resetPlanState() {
+    setPlanOpen(false);
+    setPlanProgress({});
+  }
+
+  function showToast(text: string, tone: ToastTone) {
+    setToast({ text, tone });
+
+    if (toastTimerRef.current !== null) {
+      clearTimeout(toastTimerRef.current);
+    }
+
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, TOAST_DURATION_MS);
+  }
+
+  function handleAdvantageActivate(targetId: string) {
+    if (!hasBrief) {
+      showToast("Сначала сформируйте бриф", "info");
+      return;
+    }
+
+    scrollToBriefSection(targetId);
+  }
+
+  function handlePlanToggle(index: number, completed: boolean) {
+    setPlanProgress((current) => ({
+      ...current,
+      [index]: completed
+        ? { completed: true, date: getTodayIsoDate() }
+        : { completed: false, date: "" },
+    }));
+  }
+
+  function handlePlanDateChange(index: number, date: string) {
+    setPlanProgress((current) => {
+      const item = current[index];
+
+      if (!item?.completed) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [index]: {
+          completed: true,
+          date: date || getTodayIsoDate(),
+        },
+      };
+    });
   }
 
   function handleTextChange(value: string) {
@@ -139,6 +215,7 @@ export default function Home() {
     setBrief(null);
     setResultProvider(null);
     setStatus("loading");
+    resetPlanState();
 
     try {
       const response = await fetch("/api/generate-brief", {
@@ -206,6 +283,7 @@ export default function Home() {
     setResultProvider(null);
     setApiError("");
     resetCopyState();
+    resetPlanState();
   }
 
   function handleFillExample() {
@@ -257,7 +335,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className={`${PAGE_SHELL} flex flex-1 flex-col gap-7 py-6 sm:py-8`}>
+      <main className={`${PAGE_SHELL} flex flex-1 flex-col gap-7 py-6 pb-24 sm:py-8 sm:pb-28`}>
         <section className="max-w-[720px]">
           <p className="mb-3 flex items-center gap-2 text-sm font-medium text-brand">
             <BrandMark className="h-5 w-5" />
@@ -274,22 +352,39 @@ export default function Home() {
           <ul className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
             {ADVANTAGES.map((item) => {
               const Icon = item.icon;
+              const cardContent = (
+                <>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-soft text-brand">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0 text-sm leading-6 text-ink">{item.title}</span>
+                </>
+              );
 
               return (
                 <li key={item.title} className="min-w-0">
-                  <a
-                    href={`#${RESULT_SECTION_ID}`}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      scrollToPageSection(item.targetId);
-                    }}
-                    className="ui-focus flex h-full min-h-[92px] w-full cursor-pointer gap-3 rounded-[var(--radius-card)] border border-line bg-card p-4 text-left no-underline transition-colors hover:border-brand/35 hover:bg-page"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-soft text-brand">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className="text-sm leading-6 text-ink">{item.title}</span>
-                  </a>
+                  {hasBrief ? (
+                    <a
+                      href={`#${item.targetId}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        handleAdvantageActivate(item.targetId);
+                      }}
+                      className={ADVANTAGE_CARD_CLASS}
+                    >
+                      {cardContent}
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleAdvantageActivate(item.targetId);
+                      }}
+                      className={ADVANTAGE_CARD_CLASS}
+                    >
+                      {cardContent}
+                    </button>
+                  )}
                 </li>
               );
             })}
@@ -321,10 +416,54 @@ export default function Home() {
               apiError={apiError}
               onCopy={handleCopy}
               onReset={handleClear}
+              onNotify={(message) => {
+                showToast(
+                  message,
+                  message === "Раздел скопирован" ? "success" : "danger",
+                );
+              }}
+              onOpenPlan={() => {
+                setPlanOpen(true);
+              }}
+              planOpen={planOpen}
             />
           </div>
         </div>
       </main>
+
+      {brief ? (
+        <WorkPlanModal
+          open={planOpen}
+          items={brief.recommendedWorkflow}
+          progress={planProgress}
+          onClose={() => {
+            setPlanOpen(false);
+          }}
+          onToggle={handlePlanToggle}
+          onDateChange={handlePlanDateChange}
+        />
+      ) : null}
+
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="pointer-events-none fixed inset-x-4 top-[4.75rem] z-50 flex justify-center"
+      >
+        {toast ? (
+          <p
+            role="status"
+            className={`pointer-events-auto max-w-sm rounded-[var(--radius-control)] px-3 py-2 text-center text-sm font-medium shadow-[var(--shadow-card)] ${
+              toast.tone === "success"
+                ? "bg-success-soft text-success"
+                : toast.tone === "danger"
+                  ? "bg-danger-soft text-danger"
+                  : "bg-brand-soft text-ink"
+            }`}
+          >
+            {toast.text}
+          </p>
+        ) : null}
+      </div>
 
       <footer className="mt-auto border-t border-line bg-card">
         <p className={`${PAGE_SHELL} py-4 text-sm leading-6 text-muted`}>

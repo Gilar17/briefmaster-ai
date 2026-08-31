@@ -94,3 +94,38 @@ body {
     0 0 0 2px var(--card),
     0 0 0 4px var(--brand);
 }
+
+.work-plan-dialog {
+  width: calc(100% - 1.5rem);
+  max-width: 32rem;
+  max-height: min(90dvh, 44rem);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+}
+
+.work-plan-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.work-plan-dialog::backdrop {
+  background: rgba(28, 27, 34, 0.45);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
