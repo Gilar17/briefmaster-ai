@@ -1,36 +1,135 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# БрифМастер AI
 
-## Getting Started
+БрифМастер AI — веб-приложение для дизайнеров, разработчиков сайтов и фрилансеров, которое помогает превратить неструктурированное сообщение клиента в понятный структурированный бриф.
 
-First, run the development server:
+Версия 1.0.0
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## О проекте
+
+Приложение рассчитано на UX/UI-дизайнеров, веб-дизайнеров, разработчиков сайтов, фрилансеров, менеджеров проектов и небольшие веб-студии.
+
+Клиенты часто описывают будущий сайт свободным текстом: в переписке, заметках после созвона или в разрозненных пожеланиях. Дизайнеру приходится вручную выделять цель, аудиторию, структуру, функции и пробелы в требованиях.
+
+Пользователь вставляет сообщение клиента или описание проекта. Выбранный AI-провайдер анализирует текст и формирует структурированный Brief из 11 разделов — без регистрации и без базы данных.
+
+## Основные возможности
+
+- Формирование Brief из 11 разделов
+- Выбор AI-провайдера: OpenRouter или OpenAI
+- Определение цели сайта и целевой аудитории
+- Предложение структуры сайта
+- Функциональные требования
+- Пожелания по дизайну
+- Необходимые интеграции
+- Список материалов, которые нужно запросить у клиента
+- Вопросы для уточнения
+- Рекомендуемый порядок работы
+- Копирование всего Brief
+- Копирование ключевых разделов
+- Интерактивный план работ
+- Плановые даты, которые назначает пользователь
+- Фиксация фактических дат выполнения
+- Печать и сохранение плана в PDF средствами браузера
+- Локальные настройки интерфейса
+- Светлая и тёмная тема
+- Выбор основного акцентного цвета
+- Адаптивный интерфейс для компьютера и телефона
+
+Даты в плане работы не рассчитываются автоматически: плановую дату для этапа указывает пользователь.
+
+## Как работает приложение
+
+1. Выбрать AI-провайдера.
+2. Вставить сообщение клиента или описание проекта.
+3. Нажать «Сформировать бриф».
+4. Получить Brief из 11 разделов.
+5. При необходимости скопировать результат или отдельные разделы.
+6. Открыть порядок работы и составить план: назначить плановые даты и отмечать выполненные этапы.
+
+## Технологии
+
+- Next.js 16
+- TypeScript
+- React 19
+- Tailwind CSS 4
+- OpenRouter API
+- OpenAI API
+- Vercel
+
+## AI-провайдеры
+
+Приложение поддерживает два провайдера:
+
+- **OpenRouter** — основной, выбран по умолчанию
+- **OpenAI** — альтернативный
+
+Пользователь выбирает провайдера в интерфейсе и не вводит собственный API-ключ. Ключи владельца приложения хранятся только на сервере и используются в серверном API route.
+
+## Запуск локально
+
+Требуется Node.js и npm.
+
+```powershell
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Создайте файл `.env.local` на основе `.env.example`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```powershell
+Copy-Item .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Укажите в `.env.local` значения следующих переменных:
 
-## Learn More
+- `OPENROUTER_API_KEY`
+- `OPENROUTER_MODEL`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
 
-To learn more about Next.js, take a look at the following resources:
+Запустите сервер разработки:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```powershell
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Приложение откроется по адресу `http://localhost:3000`.
 
-## Deploy on Vercel
+## Безопасность
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- API-ключи не передаются в браузер и не входят в клиентский код
+- Ключи не хранятся в репозитории; в Git допускается только `.env.example` с именами переменных
+- Обращение к AI идёт через серверный маршрут `POST /api/generate-brief`
+- На сервере действует базовый rate limit (best-effort, в памяти текущего процесса)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Ограничения версии 1.0.0
+
+Версия 1.0.0 спроектирована как компактный рабочий инструмент без серверного хранения данных.
+
+- Регистрация и аккаунты не используются: приложение открывается по ссылке
+- База данных не подключена
+- Brief и план работ существуют в рамках текущей сессии страницы и не сохраняются после перезагрузки
+- В браузере локально сохраняются только настройки интерфейса (тема, акцентный цвет и связанные предпочтения)
+- Ограничение частоты запросов — best-effort in-memory: на serverless-платформе оно не гарантирует единый глобальный лимит
+- Для формирования брифа на сервере должны быть заданы API-ключи и модели выбранного провайдера
+
+## Возможное развитие
+
+Идеи для следующих версий, не входящие в 1.0.0:
+
+- история проектов и Brief
+- база данных
+- авторизация
+- редактирование сохранённых Brief
+- экспорт Brief в PDF или DOCX
+- шаблоны для разных типов сайтов
+- совместная работа с клиентом
+- интеграции с CRM и системами постановки задач
+
+## Ссылки
+
+- Production: https://briefmaster-ai.vercel.app
+- GitHub: https://github.com/Gilar17/briefmaster-ai
+
+## Версия
+
+Версия 1.0.0
