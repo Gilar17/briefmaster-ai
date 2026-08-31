@@ -101,25 +101,25 @@ export default function ConfirmModal({
         }
       }}
     >
-      <div className="px-4 py-4 sm:px-5 sm:py-5">
+      <div className="px-4 py-4 sm:px-5">
         <p
           id="confirm-dialog-message"
-          className="text-sm leading-6 text-ink sm:text-base"
+          className="text-sm leading-6 text-ink"
         >
           {message}
         </p>
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <div className="mt-4 flex flex-row justify-end gap-2">
           <button
             type="button"
             onClick={handleCancel}
-            className="ui-focus inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page sm:w-auto sm:min-w-[8.5rem]"
+            className="ui-focus inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-3 text-sm font-medium text-ink transition-colors hover:bg-page sm:flex-none sm:px-4 sm:min-w-[7.25rem]"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="ui-focus inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-control)] bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active sm:w-auto sm:min-w-[8.5rem]"
+            className="ui-focus inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] bg-brand px-3 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active sm:flex-none sm:px-4 sm:min-w-[7.25rem]"
           >
             {confirmLabel}
           </button>

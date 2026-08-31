@@ -21,6 +21,7 @@ type BriefFormProps = {
   validationMessage: string;
   isLoading: boolean;
   canClear: boolean;
+  showHints?: boolean;
   onTextChange: (value: string) => void;
   onProviderChange: (provider: AIProvider) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -47,6 +48,7 @@ export default function BriefForm({
   validationMessage,
   isLoading,
   canClear,
+  showHints = true,
   onTextChange,
   onProviderChange,
   onSubmit,
@@ -79,10 +81,12 @@ export default function BriefForm({
         </p>
       </div>
 
-      <div className="mb-4 flex items-center gap-2 rounded-[var(--radius-control)] bg-brand-soft px-3 py-2">
-        <InfoIcon className="h-4 w-4 shrink-0 text-brand" />
-        <p className="text-sm leading-5 text-ink">Выберите AI-провайдера</p>
-      </div>
+      {showHints ? (
+        <div className="mb-4 flex items-center gap-2 rounded-[var(--radius-control)] bg-brand-soft px-3 py-2">
+          <InfoIcon className="h-4 w-4 shrink-0 text-brand" />
+          <p className="text-sm leading-5 text-ink">Выберите AI-провайдера</p>
+        </div>
+      ) : null}
 
       <fieldset className="mb-5 min-w-0">
         <legend id="provider-label" className="mb-2.5 text-sm font-medium text-ink">

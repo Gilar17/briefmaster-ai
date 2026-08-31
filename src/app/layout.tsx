@@ -18,10 +18,13 @@ export const metadata: Metadata = {
     "AI-помощник для преобразования сообщений клиента в структурированный бриф на разработку сайта",
 };
 
+const THEME_BOOTSTRAP = `(function(){try{var raw=localStorage.getItem("briefmaster-ui-settings");if(!raw)return;var theme=JSON.parse(raw).theme;if(theme==="dark"||theme==="light"){document.documentElement.setAttribute("data-theme",theme);}}catch(e){}})();`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ru"
+      data-theme="light"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -29,6 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         className="min-h-full flex flex-col bg-page text-ink"
         suppressHydrationWarning
       >
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
         {children}
       </body>
     </html>

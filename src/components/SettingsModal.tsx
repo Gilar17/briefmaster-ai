@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { BrandMark, CloseIcon } from "@/components/UiIcons";
-import type { UiSettings } from "@/lib/ui-settings";
+import type { UiSettings, UiTheme } from "@/lib/ui-settings";
+import type { AIProvider } from "@/types/brief";
 
 type SettingsModalProps = {
   open: boolean;
   settings: UiSettings;
   onClose: () => void;
-  onConfirmBeforeClearChange: (value: boolean) => void;
+  onSettingsChange: (patch: Partial<UiSettings>) => void;
   onResetSettings: () => void;
 };
 
@@ -19,11 +20,21 @@ const APP_FEATURES = [
   "Показывает порядок работы",
 ] as const;
 
+const PROVIDER_OPTIONS: { value: AIProvider; label: string }[] = [
+  { value: "openrouter", label: "OpenRouter" },
+  { value: "openai", label: "OpenAI" },
+];
+
+const THEME_OPTIONS: { value: UiTheme; label: string }[] = [
+  { value: "light", label: "Светлая" },
+  { value: "dark", label: "Тёмная" },
+];
+
 export default function SettingsModal({
   open,
   settings,
   onClose,
-  onConfirmBeforeClearChange,
+  onSettingsChange,
   onResetSettings,
 }: SettingsModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -163,7 +174,7 @@ export default function SettingsModal({
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-sm leading-6 text-muted">Версия: MVP</p>
+          <p className="mt-4 text-sm leading-6 text-muted">Версия 1.0.0</p>
         </section>
 
         <section
@@ -177,52 +188,105 @@ export default function SettingsModal({
             Локальные настройки
           </h3>
 
-          <div className="mt-3 flex items-center justify-between gap-4 rounded-[var(--radius-control)] border border-line bg-page px-3.5 py-3">
-            <p
+          <div className="mt-3 flex flex-col gap-2">
+            <SettingsSwitchRow
               id="confirm-clear-label"
-              className="min-w-0 text-sm leading-6 text-ink"
-            >
-              Подтверждать очистку данных
-            </p>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={settings.confirmBeforeClear}
-              aria-labelledby="confirm-clear-label"
-              onClick={() => {
-                onConfirmBeforeClearChange(!settings.confirmBeforeClear);
+              label="Подтверждать очистку данных"
+              checked={settings.confirmBeforeClear}
+              onChange={(value) => {
+                onSettingsChange({ confirmBeforeClear: value });
               }}
-              className="ui-focus inline-flex h-11 w-14 shrink-0 items-center justify-center rounded-[var(--radius-control)]"
+            />
+
+            <SettingsChoiceRow
+              id="default-provider-label"
+              label="AI-провайдер по умолчанию"
             >
-              <span
-                className={`settings-switch ${
-                  settings.confirmBeforeClear ? "is-on" : ""
-                }`}
-              >
-                <span className="settings-switch-thumb" />
-              </span>
-            </button>
+              {PROVIDER_OPTIONS.map((option) => {
+                const selected = settings.defaultProvider === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      onSettingsChange({ defaultProvider: option.value });
+                    }}
+                    className={`ui-focus inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-[10px] px-2.5 text-[13px] font-medium transition-colors ${
+                      selected
+                        ? "bg-brand text-white"
+                        : "text-ink hover:bg-card"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </SettingsChoiceRow>
+
+            <SettingsSwitchRow
+              id="mobile-autoscroll-label"
+              label="Автопрокрутка к исходным данным"
+              checked={settings.mobileAutoScroll}
+              onChange={(value) => {
+                onSettingsChange({ mobileAutoScroll: value });
+              }}
+            />
+
+            <SettingsSwitchRow
+              id="ui-hints-label"
+              label="Подсказки интерфейса"
+              checked={settings.uiHints}
+              onChange={(value) => {
+                onSettingsChange({ uiHints: value });
+              }}
+            />
+
+            <SettingsChoiceRow id="theme-label" label="Тема">
+              {THEME_OPTIONS.map((option) => {
+                const selected = settings.theme === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      onSettingsChange({ theme: option.value });
+                    }}
+                    className={`ui-focus inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-[10px] px-2.5 text-[13px] font-medium transition-colors ${
+                      selected
+                        ? "bg-brand text-white"
+                        : "text-ink hover:bg-card"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </SettingsChoiceRow>
           </div>
 
           {resetConfirming ? (
-            <div className="mt-3 rounded-[var(--radius-control)] border border-line bg-page px-3.5 py-3">
+            <div className="mt-3 rounded-[var(--radius-control)] border border-line bg-page px-3 py-3">
               <p className="text-sm leading-6 text-ink">
                 Вернуть локальные настройки к значениям по умолчанию?
               </p>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <div className="mt-3 flex flex-row justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     setResetConfirming(false);
                   }}
-                  className="ui-focus inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page sm:w-auto"
+                  className="ui-focus inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-3 text-sm font-medium text-ink transition-colors hover:bg-page sm:flex-none sm:min-w-[7.25rem]"
                 >
                   Отмена
                 </button>
                 <button
                   type="button"
                   onClick={handleResetSettings}
-                  className="ui-focus inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-control)] bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active sm:w-auto"
+                  className="ui-focus inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-[var(--radius-control)] bg-brand px-3 text-sm font-medium text-white transition-colors hover:bg-brand-hover active:bg-brand-active sm:flex-none sm:min-w-[7.25rem]"
                 >
                   Сбросить
                 </button>
@@ -234,7 +298,7 @@ export default function SettingsModal({
               onClick={() => {
                 setResetConfirming(true);
               }}
-              className="ui-focus mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page active:bg-brand-soft sm:w-auto"
+              className="ui-focus mt-3 inline-flex h-10 w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page active:bg-brand-soft sm:w-auto"
             >
               Сбросить локальные настройки
             </button>
@@ -246,11 +310,70 @@ export default function SettingsModal({
         <button
           type="button"
           onClick={handleClose}
-          className="ui-focus inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page sm:w-auto"
+          className="ui-focus inline-flex h-10 w-full items-center justify-center rounded-[var(--radius-control)] border border-line bg-card px-4 text-sm font-medium text-ink transition-colors hover:bg-page sm:w-auto"
         >
           Закрыть
         </button>
       </footer>
     </dialog>
+  );
+}
+
+function SettingsSwitchRow({
+  id,
+  label,
+  checked,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div className="settings-row">
+      <p id={id} className="min-w-0 text-sm leading-5 text-ink">
+        {label}
+      </p>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-labelledby={id}
+        onClick={() => {
+          onChange(!checked);
+        }}
+        className="ui-focus inline-flex h-8 w-11 shrink-0 items-center justify-center rounded-full"
+      >
+        <span className={`settings-switch ${checked ? "is-on" : ""}`}>
+          <span className="settings-switch-thumb" />
+        </span>
+      </button>
+    </div>
+  );
+}
+
+function SettingsChoiceRow({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="settings-row settings-row-choice">
+      <p id={id} className="min-w-0 text-sm leading-5 text-ink">
+        {label}
+      </p>
+      <div
+        role="group"
+        aria-labelledby={id}
+        className="flex min-w-0 w-full rounded-[12px] bg-card p-0.5"
+      >
+        {children}
+      </div>
+    </div>
   );
 }

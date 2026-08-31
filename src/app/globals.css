@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
-:root {
+:root,
+html[data-theme="light"] {
+  color-scheme: light;
   --page: #f5f4f8;
   --card: #ffffff;
   --ink: #1c1b22;
@@ -17,6 +19,26 @@
   --radius-card: 16px;
   --radius-control: 12px;
   --shadow-card: 0 8px 24px rgba(28, 27, 34, 0.05);
+  --overlay: rgba(28, 27, 34, 0.45);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #14131a;
+  --card: #1e1d26;
+  --ink: #f3f2f8;
+  --muted: #b4b2c0;
+  --brand: #9a86d8;
+  --brand-hover: #ab99e0;
+  --brand-active: #b8a8e6;
+  --brand-soft: #2b2540;
+  --line: #3a3848;
+  --danger: #f0b0ac;
+  --danger-soft: #3a2625;
+  --success: #8ec992;
+  --success-soft: #213325;
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --overlay: rgba(0, 0, 0, 0.58);
 }
 
 @theme inline {
@@ -43,6 +65,7 @@ html,
 body {
   min-height: 100%;
   overflow-x: clip;
+  background: var(--page);
 }
 
 body {
@@ -111,7 +134,8 @@ body {
 }
 
 .confirm-dialog {
-  max-width: 24rem;
+  width: calc(100% - 2rem);
+  max-width: 22rem;
 }
 
 .work-plan-dialog[open],
@@ -125,14 +149,48 @@ body {
 .work-plan-dialog::backdrop,
 .settings-dialog::backdrop,
 .confirm-dialog::backdrop {
-  background: rgba(28, 27, 34, 0.45);
+  background: var(--overlay);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.375rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--page);
+}
+
+.settings-row-choice {
+  align-items: stretch;
+  flex-direction: column;
+  min-height: 0;
+  gap: 0.5rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+}
+
+@media (min-width: 480px) {
+  .settings-row-choice {
+    flex-direction: row;
+    align-items: center;
+    min-height: 3.375rem;
+  }
+
+  .settings-row-choice [role="group"] {
+    width: auto;
+    flex: 0 0 auto;
+  }
 }
 
 .settings-switch {
   position: relative;
   display: block;
-  width: 2.75rem;
-  height: 1.625rem;
+  width: 2.25rem;
+  height: 1.25rem;
   border-radius: 9999px;
   background: var(--line);
   transition: background-color 0.15s ease;
@@ -144,10 +202,10 @@ body {
 
 .settings-switch-thumb {
   position: absolute;
-  top: 0.1875rem;
-  left: 0.1875rem;
-  width: 1.25rem;
-  height: 1.25rem;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 1rem;
+  height: 1rem;
   border-radius: 9999px;
   background: #ffffff;
   box-shadow: 0 1px 2px rgba(28, 27, 34, 0.18);
@@ -155,7 +213,7 @@ body {
 }
 
 .settings-switch.is-on .settings-switch-thumb {
-  transform: translateX(1.125rem);
+  transform: translateX(1rem);
 }
 
 .work-plan-print-root {

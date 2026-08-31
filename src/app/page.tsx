@@ -41,8 +41,8 @@ const UNAVAILABLE_ERROR =
 const INVALID_RESPONSE_ERROR =
   "Не удалось обработать ответ AI. Попробуйте сформировать бриф ещё раз.";
 
-const CLEAR_CONFIRM_MESSAGE =
-  "Очистить введённый текст, готовый бриф и план работ?";
+const CLEAR_CONFIRM_MESSAGE = "Очистить текущие данные?";
+const NEW_BRIEF_CONFIRM_MESSAGE = "Перейти к новому брифу?";
 const BRIEF_HINT_DURATION_MS = 3000;
 const COPY_FEEDBACK_MS = 2800;
 const MOBILE_AUTO_SCROLL_MAX_WIDTH_PX = 768;
@@ -101,7 +101,9 @@ function getValidationMessage(text: string): string {
 
 export default function Home() {
   const [text, setText] = useState("");
-  const [provider, setProvider] = useState<AIProvider>("openrouter");
+  const [providerOverride, setProviderOverride] = useState<AIProvider | null>(
+    null,
+  );
   const [validationMessage, setValidationMessage] = useState("");
   const [status, setStatus] = useState<RequestStatus>("idle");
   const [brief, setBrief] = useState<Brief | null>(null);
@@ -112,13 +114,16 @@ export default function Home() {
   const [briefHintVisible, setBriefHintVisible] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [confirmKind, setConfirmKind] = useState<"clear" | "new-brief" | null>(
+    null,
+  );
   const [planProgress, setPlanProgress] = useState<PlanProgress>({});
   const { settings, updateSettings, resetSettings } = useUiSettings();
   const abortRef = useRef<AbortController | null>(null);
   const briefHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasBriefRef = useRef(false);
+  const provider = providerOverride ?? settings.defaultProvider;
 
   useEffect(() => {
     return () => {
@@ -142,6 +147,10 @@ export default function Home() {
   }, [hasBrief]);
 
   useEffect(() => {
+    if (!settings.mobileAutoScroll) {
+      return;
+    }
+
     if (window.innerWidth >= MOBILE_AUTO_SCROLL_MAX_WIDTH_PX) {
       return;
     }
@@ -209,7 +218,7 @@ export default function Home() {
       cancelAutoScroll();
       listenerController.abort();
     };
-  }, []);
+  }, [settings.mobileAutoScroll]);
 
   const canClear =
     text.length > 0 ||
@@ -218,7 +227,7 @@ export default function Home() {
     copied ||
     copyError.length > 0 ||
     apiError.length > 0 ||
-    provider !== "openrouter";
+    provider !== settings.defaultProvider;
 
   function clearCopiedTimer() {
     if (copiedTimerRef.current !== null) {
@@ -251,6 +260,9 @@ export default function Home() {
   }
 
   function showBriefHint() {
+    if (!settings.uiHints) {
+      return;
+    }
     setBriefHintVisible(true);
     clearBriefHintTimer();
     briefHintTimerRef.current = setTimeout(() => {
@@ -414,7 +426,7 @@ export default function Home() {
     abortRef.current = null;
 
     setText("");
-    setProvider("openrouter");
+    setProviderOverride(null);
     setValidationMessage("");
     setStatus("idle");
     setBrief(null);
@@ -427,7 +439,16 @@ export default function Home() {
 
   function requestClear() {
     if (settings.confirmBeforeClear) {
-      setClearConfirmOpen(true);
+      setConfirmKind("clear");
+      return;
+    }
+
+    handleClear();
+  }
+
+  function requestNewBrief() {
+    if (settings.confirmBeforeClear) {
+      setConfirmKind("new-brief");
       return;
     }
 
@@ -549,7 +570,7 @@ export default function Home() {
               );
             })}
           </ul>
-          {!hasBrief && briefHintVisible ? (
+          {!hasBrief && briefHintVisible && settings.uiHints ? (
             <div
               role="status"
               className="mt-3 flex gap-2 rounded-[var(--radius-control)] bg-danger-soft px-3 py-2.5 text-sm leading-5 text-danger"
@@ -568,8 +589,9 @@ export default function Home() {
               validationMessage={validationMessage}
               isLoading={isLoading}
               canClear={canClear}
+              showHints={settings.uiHints}
               onTextChange={handleTextChange}
-              onProviderChange={setProvider}
+              onProviderChange={setProviderOverride}
               onSubmit={handleSubmit}
               onClear={requestClear}
               onFillExample={handleFillExample}
@@ -585,7 +607,7 @@ export default function Home() {
               copyError={copyError}
               apiError={apiError}
               onCopy={handleCopy}
-              onReset={requestClear}
+              onReset={requestNewBrief}
               onOpenPlan={() => {
                 setPlanOpen(true);
               }}
@@ -601,22 +623,27 @@ export default function Home() {
         onClose={() => {
           setSettingsOpen(false);
         }}
-        onConfirmBeforeClearChange={(value) => {
-          updateSettings({ confirmBeforeClear: value });
+        onSettingsChange={updateSettings}
+        onResetSettings={() => {
+          resetSettings();
+          setProviderOverride(null);
         }}
-        onResetSettings={resetSettings}
       />
 
       <ConfirmModal
-        open={clearConfirmOpen}
-        message={CLEAR_CONFIRM_MESSAGE}
+        open={confirmKind !== null}
+        message={
+          confirmKind === "new-brief"
+            ? NEW_BRIEF_CONFIRM_MESSAGE
+            : CLEAR_CONFIRM_MESSAGE
+        }
         cancelLabel="Отмена"
-        confirmLabel="Очистить"
+        confirmLabel={confirmKind === "new-brief" ? "Перейти" : "Очистить"}
         onCancel={() => {
-          setClearConfirmOpen(false);
+          setConfirmKind(null);
         }}
         onConfirm={() => {
-          setClearConfirmOpen(false);
+          setConfirmKind(null);
           handleClear();
         }}
       />

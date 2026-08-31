@@ -1,13 +1,24 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useLayoutEffect, useSyncExternalStore } from "react";
+import type { AIProvider } from "@/types/brief";
+
+export type UiTheme = "light" | "dark";
 
 export type UiSettings = {
   confirmBeforeClear: boolean;
+  defaultProvider: AIProvider;
+  mobileAutoScroll: boolean;
+  uiHints: boolean;
+  theme: UiTheme;
 };
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
   confirmBeforeClear: true,
+  defaultProvider: "openrouter",
+  mobileAutoScroll: true,
+  uiHints: true,
+  theme: "light",
 };
 
 export const UI_SETTINGS_STORAGE_KEY = "briefmaster-ui-settings";
@@ -17,12 +28,16 @@ let snapshot: UiSettings = DEFAULT_UI_SETTINGS;
 let snapshotRaw: string | null = null;
 let hasRead = false;
 
-function isUiSettings(value: unknown): value is UiSettings {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as UiSettings).confirmBeforeClear === "boolean"
-  );
+function isAiProvider(value: unknown): value is AIProvider {
+  return value === "openrouter" || value === "openai";
+}
+
+function isUiTheme(value: unknown): value is UiTheme {
+  return value === "light" || value === "dark";
+}
+
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
 }
 
 function parseSettings(raw: string | null): UiSettings {
@@ -33,16 +48,48 @@ function parseSettings(raw: string | null): UiSettings {
   try {
     const parsed: unknown = JSON.parse(raw);
 
-    if (!isUiSettings(parsed)) {
+    if (typeof parsed !== "object" || parsed === null) {
       return DEFAULT_UI_SETTINGS;
     }
 
+    const record = parsed as Record<string, unknown>;
+
     return {
-      confirmBeforeClear: parsed.confirmBeforeClear,
+      confirmBeforeClear: readBoolean(
+        record.confirmBeforeClear,
+        DEFAULT_UI_SETTINGS.confirmBeforeClear,
+      ),
+      defaultProvider: isAiProvider(record.defaultProvider)
+        ? record.defaultProvider
+        : DEFAULT_UI_SETTINGS.defaultProvider,
+      mobileAutoScroll: readBoolean(
+        record.mobileAutoScroll,
+        DEFAULT_UI_SETTINGS.mobileAutoScroll,
+      ),
+      uiHints: readBoolean(record.uiHints, DEFAULT_UI_SETTINGS.uiHints),
+      theme: isUiTheme(record.theme) ? record.theme : DEFAULT_UI_SETTINGS.theme,
     };
   } catch {
     return DEFAULT_UI_SETTINGS;
   }
+}
+
+function serializeSettings(settings: UiSettings): string {
+  return JSON.stringify({
+    confirmBeforeClear: settings.confirmBeforeClear,
+    defaultProvider: settings.defaultProvider,
+    mobileAutoScroll: settings.mobileAutoScroll,
+    uiHints: settings.uiHints,
+    theme: settings.theme,
+  });
+}
+
+export function applyTheme(theme: UiTheme): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  document.documentElement.dataset.theme = theme;
 }
 
 function readStoredSettings(): UiSettings {
@@ -101,18 +148,17 @@ export function saveUiSettings(settings: UiSettings): void {
   }
 
   try {
-    window.localStorage.setItem(
-      UI_SETTINGS_STORAGE_KEY,
-      JSON.stringify({
-        confirmBeforeClear: settings.confirmBeforeClear,
-      }),
-    );
+    window.localStorage.setItem(UI_SETTINGS_STORAGE_KEY, serializeSettings(settings));
   } catch {
     // Игнорируем недоступность localStorage (приватный режим, квота).
   }
 
   snapshot = {
     confirmBeforeClear: settings.confirmBeforeClear,
+    defaultProvider: settings.defaultProvider,
+    mobileAutoScroll: settings.mobileAutoScroll,
+    uiHints: settings.uiHints,
+    theme: settings.theme,
   };
 
   try {
@@ -122,6 +168,7 @@ export function saveUiSettings(settings: UiSettings): void {
   }
 
   hasRead = true;
+  applyTheme(settings.theme);
   listeners.forEach((listener) => {
     listener();
   });
@@ -134,10 +181,18 @@ export function useUiSettings() {
     () => DEFAULT_UI_SETTINGS,
   );
 
+  useLayoutEffect(() => {
+    applyTheme(settings.theme);
+  }, [settings.theme]);
+
   const updateSettings = useCallback((patch: Partial<UiSettings>) => {
     const current = readStoredSettings();
     saveUiSettings({
       confirmBeforeClear: patch.confirmBeforeClear ?? current.confirmBeforeClear,
+      defaultProvider: patch.defaultProvider ?? current.defaultProvider,
+      mobileAutoScroll: patch.mobileAutoScroll ?? current.mobileAutoScroll,
+      uiHints: patch.uiHints ?? current.uiHints,
+      theme: patch.theme ?? current.theme,
     });
   }, []);
 
