@@ -8,12 +8,14 @@ import BriefForm, {
   MIN_TEXT_LENGTH,
 } from "@/components/BriefForm";
 import BriefResult, { formatBriefAsText } from "@/components/BriefResult";
+import ConfirmModal from "@/components/ConfirmModal";
 import SettingsModal from "@/components/SettingsModal";
 import WorkPlanModal, {
   getPlanItem,
   getTodayIsoDate,
   type PlanProgress,
 } from "@/components/WorkPlanModal";
+import { useUiSettings } from "@/lib/ui-settings";
 import {
   AlertIcon,
   BrandMark,
@@ -39,6 +41,8 @@ const UNAVAILABLE_ERROR =
 const INVALID_RESPONSE_ERROR =
   "Не удалось обработать ответ AI. Попробуйте сформировать бриф ещё раз.";
 
+const CLEAR_CONFIRM_MESSAGE =
+  "Очистить введённый текст, готовый бриф и план работ?";
 const BRIEF_HINT_DURATION_MS = 3000;
 const COPY_FEEDBACK_MS = 2800;
 const MOBILE_AUTO_SCROLL_MAX_WIDTH_PX = 768;
@@ -108,7 +112,9 @@ export default function Home() {
   const [briefHintVisible, setBriefHintVisible] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [planProgress, setPlanProgress] = useState<PlanProgress>({});
+  const { settings, updateSettings, resetSettings } = useUiSettings();
   const abortRef = useRef<AbortController | null>(null);
   const briefHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -419,6 +425,15 @@ export default function Home() {
     resetPlanState();
   }
 
+  function requestClear() {
+    if (settings.confirmBeforeClear) {
+      setClearConfirmOpen(true);
+      return;
+    }
+
+    handleClear();
+  }
+
   function handleFillExample() {
     setText(EXAMPLE_CLIENT_TEXT);
     setValidationMessage("");
@@ -455,8 +470,8 @@ export default function Home() {
   return (
     <div className="flex min-h-full flex-col bg-page">
       <header className="border-b border-line bg-card">
-        <div className={`${PAGE_SHELL} flex items-center justify-between gap-4 py-4`}>
-          <div className="flex min-w-0 items-center gap-3">
+        <div className={`${PAGE_SHELL} flex items-center justify-between gap-3 py-4`}>
+          <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
             <BrandMark className="h-8 w-8 shrink-0 text-brand" />
             <div className="min-w-0">
               <p className="truncate text-base font-semibold tracking-tight text-ink">
@@ -477,7 +492,7 @@ export default function Home() {
             onClick={() => {
               setSettingsOpen(true);
             }}
-            className="ui-focus inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-muted transition-colors hover:bg-page hover:text-ink active:bg-brand-soft active:text-brand"
+            className="ui-focus inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-muted transition-colors hover:bg-page hover:text-ink focus-visible:text-ink active:bg-brand-soft active:text-brand"
           >
             <SettingsIcon className="h-5 w-5" />
           </button>
@@ -556,7 +571,7 @@ export default function Home() {
               onTextChange={handleTextChange}
               onProviderChange={setProvider}
               onSubmit={handleSubmit}
-              onClear={handleClear}
+              onClear={requestClear}
               onFillExample={handleFillExample}
             />
           </div>
@@ -570,7 +585,7 @@ export default function Home() {
               copyError={copyError}
               apiError={apiError}
               onCopy={handleCopy}
-              onReset={handleClear}
+              onReset={requestClear}
               onOpenPlan={() => {
                 setPlanOpen(true);
               }}
@@ -582,8 +597,27 @@ export default function Home() {
 
       <SettingsModal
         open={settingsOpen}
+        settings={settings}
         onClose={() => {
           setSettingsOpen(false);
+        }}
+        onConfirmBeforeClearChange={(value) => {
+          updateSettings({ confirmBeforeClear: value });
+        }}
+        onResetSettings={resetSettings}
+      />
+
+      <ConfirmModal
+        open={clearConfirmOpen}
+        message={CLEAR_CONFIRM_MESSAGE}
+        cancelLabel="Отмена"
+        confirmLabel="Очистить"
+        onCancel={() => {
+          setClearConfirmOpen(false);
+        }}
+        onConfirm={() => {
+          setClearConfirmOpen(false);
+          handleClear();
         }}
       />
 
