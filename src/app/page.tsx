@@ -8,6 +8,7 @@ import BriefForm, {
   MIN_TEXT_LENGTH,
 } from "@/components/BriefForm";
 import BriefResult, { formatBriefAsText } from "@/components/BriefResult";
+import SettingsModal from "@/components/SettingsModal";
 import WorkPlanModal, {
   getPlanItem,
   getTodayIsoDate,
@@ -18,6 +19,7 @@ import {
   BrandMark,
   QuestionsIcon,
   SectionsIcon,
+  SettingsIcon,
   StructureIcon,
 } from "@/components/UiIcons";
 import { isPlainObject, normalizeBrief } from "@/lib/ai/parseBrief";
@@ -105,6 +107,7 @@ export default function Home() {
   const [apiError, setApiError] = useState("");
   const [briefHintVisible, setBriefHintVisible] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [planProgress, setPlanProgress] = useState<PlanProgress>({});
   const abortRef = useRef<AbortController | null>(null);
   const briefHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -464,18 +467,25 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <span className="shrink-0 rounded-full bg-brand-soft px-3 py-1 text-xs font-medium text-ink">
-            MVP
-          </span>
+          <button
+            type="button"
+            id="open-settings"
+            aria-label="Настройки"
+            aria-haspopup="dialog"
+            aria-expanded={settingsOpen}
+            aria-controls="settings-dialog"
+            onClick={() => {
+              setSettingsOpen(true);
+            }}
+            className="ui-focus inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] text-muted transition-colors hover:bg-page hover:text-ink active:bg-brand-soft active:text-brand"
+          >
+            <SettingsIcon className="h-5 w-5" />
+          </button>
         </div>
       </header>
 
       <main className={`${PAGE_SHELL} flex flex-1 flex-col gap-7 py-6 pb-24 sm:py-8 sm:pb-28`}>
         <section className="max-w-[720px]">
-          <p className="mb-3 flex items-center gap-2 text-sm font-medium text-brand">
-            <BrandMark className="h-5 w-5" />
-            БрифМастер AI
-          </p>
           <h1 className="max-w-[34rem] text-[28px] font-semibold leading-[1.2] tracking-tight text-ink sm:text-[36px] lg:text-[40px]">
             Превратите сообщение клиента в понятный бриф
           </h1>
@@ -569,6 +579,13 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => {
+          setSettingsOpen(false);
+        }}
+      />
 
       {brief ? (
         <WorkPlanModal

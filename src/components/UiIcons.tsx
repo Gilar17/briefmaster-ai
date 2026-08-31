@@ -122,3 +122,17 @@ export function CloseIcon({ className }: IconProps) {
     </IconBase>
   );
 }
+
+export function SettingsIcon({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <circle cx="12" cy="12" r="3.1" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M12 3.6v2.3M12 18.1v2.3M4.9 6.4l1.7 1.7M17.4 15.9l1.7 1.7M3.6 12h2.3M18.1 12h2.3M4.9 17.6l1.7-1.7M17.4 8.1l1.7-1.7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </IconBase>
+  );
+}
