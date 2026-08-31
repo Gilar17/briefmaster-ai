@@ -124,10 +124,10 @@ export function formatPlanAsText(
       lines.push(description);
     }
 
-    lines.push(`Выполнить к: ${formatPlannedDateForExport(state.plannedDate)}`);
-
     if (completed) {
       lines.push(`Выполнено: ${formatDateRu(state.completedDate)}`);
+    } else {
+      lines.push(`Выполнить к: ${formatPlannedDateForExport(state.plannedDate)}`);
     }
 
     return lines.join("\n");
@@ -330,23 +330,25 @@ export default function WorkPlanModal({
                           </p>
                         ) : null}
 
-                        <div className="mt-2.5 flex min-w-0 flex-col gap-1.5">
-                          <label
-                            htmlFor={plannedDateId}
-                            className="text-sm font-medium text-ink"
-                          >
-                            Выполнить к:
-                          </label>
-                          <input
-                            id={plannedDateId}
-                            type="date"
-                            value={state.plannedDate}
-                            onChange={(event) => {
-                              onPlannedDateChange(index, event.target.value);
-                            }}
-                            className="ui-focus min-h-9 w-full max-w-full rounded-[var(--radius-control)] border border-line bg-card px-2.5 text-sm text-ink sm:max-w-[12.5rem]"
-                          />
-                        </div>
+                        {!state.completed ? (
+                          <div className="mt-2.5 flex min-w-0 flex-col gap-1.5">
+                            <label
+                              htmlFor={plannedDateId}
+                              className="text-sm font-medium text-ink"
+                            >
+                              Выполнить к:
+                            </label>
+                            <input
+                              id={plannedDateId}
+                              type="date"
+                              value={state.plannedDate}
+                              onChange={(event) => {
+                                onPlannedDateChange(index, event.target.value);
+                              }}
+                              className="ui-focus min-h-9 w-full max-w-full rounded-[var(--radius-control)] border border-line bg-card px-2.5 text-sm text-ink sm:max-w-[12.5rem]"
+                            />
+                          </div>
+                        ) : null}
 
                         {showCompletedFields ? (
                           <div className="mt-2.5 flex min-w-0 flex-col gap-1.5">
@@ -458,12 +460,13 @@ export default function WorkPlanModal({
                 {description ? (
                   <p className="work-plan-print-description">{description}</p>
                 ) : null}
-                <p>
-                  Выполнить к: {formatPlannedDateForExport(state.plannedDate)}
-                </p>
                 {completed ? (
                   <p>Выполнено: {formatDateRu(state.completedDate)}</p>
-                ) : null}
+                ) : (
+                  <p>
+                    Выполнить к: {formatPlannedDateForExport(state.plannedDate)}
+                  </p>
+                )}
               </li>
             );
           })}
